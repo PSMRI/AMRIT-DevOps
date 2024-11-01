@@ -4,7 +4,8 @@ POST /_security/api_key
     "role_descriptors": {
             "apm_writer": {
                 "cluster": [
-                    "monitor"
+                    "monitor",
+                    "ilm_read"
                 ],
                 "indices": [
                     {
