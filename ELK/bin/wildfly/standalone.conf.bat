@@ -92,4 +92,4 @@ rem # Uncomment to add a Java agent. If an agent is added to the module options,
 rem # on the JVM. This allows things like the log manager or security manager to be configured before the agent is invoked.
 rem set "MODULE_OPTS=-javaagent:agent.jar"
 
-set "JAVA_OPTS=%JAVA_OPTS% -javaagent:/opt/jboss/wildfly/elastic-apm-agent.jar"
+set "JAVA_OPTS=%JAVA_OPTS% -javaagent:/opt/jboss/wildfly/apm_agent/elastic-apm-agent.jar"

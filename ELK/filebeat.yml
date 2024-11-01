@@ -13,8 +13,7 @@ processors:
         environment: production
 
 output.elasticsearch:
-  hosts: ["https://elasticsearch:9200"]
+  hosts: ["https://192.168.45.179:9200"]
   api_key: "${ELASTICSEARCH_API_KEY}"
-  ssl: 
-    verification_mode: certificate
+  ssl:
     certificate_authorities: ["/usr/share/filebeat/http_ca.crt"]
