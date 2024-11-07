@@ -17,3 +17,10 @@ output.elasticsearch:
   api_key: "${ELASTICSEARCH_API_KEY}"
   ssl:
     certificate_authorities: ["/usr/share/filebeat/http_ca.crt"]
+  index: "filebeat-%{[service.name]}-%{+yyyy.MM.dd}"
+
+setup.template.name: "filebeat"
+setup.template.pattern: "filebeat-*"
+setup.template.settings:
+  index.lifecycle.name: "90day-log-policy"
+  index.lifecycle.rollover_alias: "filebeat"
