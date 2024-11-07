@@ -1,0 +1,39 @@
+PUT _security/role/dev_apm_logs
+{
+  "indices": [
+    {
+      "names": [
+        "filebeat-*",
+        "apm-*",
+        ".apm-*",
+        ".kibana*",
+        "traces-apm*",
+        "metrics-apm*"
+      ],
+      "privileges": [
+        "read",
+        "view_index_metadata"
+      ]
+    }
+  ],
+  "applications": [
+    {
+      "application": "kibana-.kibana",
+      "privileges": [
+        "feature_apm.read",
+        "feature_discover.read",
+        "feature_dashboard.all",
+        "feature_visualize.all",
+        "feature_saved_object.all"
+      ],
+      "resources": ["*"]
+    },
+    {
+      "application": "apm",
+      "privileges": [
+        "read"
+      ],
+      "resources": ["*"]
+    }
+  ]
+}
