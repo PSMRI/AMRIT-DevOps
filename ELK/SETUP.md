@@ -1,4 +1,4 @@
-# ELK stack setup guide
+# ELK tracing and logging setup
 
 
 ## Traces

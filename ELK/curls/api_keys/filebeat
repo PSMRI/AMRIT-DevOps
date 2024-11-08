@@ -7,7 +7,7 @@ POST /_security/api_key
       "index": [
         {
           "names": ["filebeat-*"],
-          "privileges": ["create_index", "view_index_metadata", "create_doc", "auto_configure"]
+          "privileges": ["create_index", "view_index_metadata", "create_doc", "auto_configure", "manage_follow_index"]
         }
       ]
     }
