@@ -1,0 +1,26 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /app/logs/*.json
+  json.keys_under_root: true
+  json.overwrite_keys: true
+
+processors:
+  - add_fields:
+      target: ''
+      fields:
+        environment: production
+
+output.elasticsearch:
+  hosts: ["https://192.168.45.179:9200"]
+  api_key: "${ELASTICSEARCH_API_KEY}"
+  ssl:
+    certificate_authorities: ["/usr/share/filebeat/http_ca.crt"]
+  index: "filebeat-%{[service.name]}-%{+yyyy.MM.dd}"
+
+setup.template.name: "filebeat"
+setup.template.pattern: "filebeat-*"
+setup.template.settings:
+  index.lifecycle.name: "90day-log-policy"
+  index.lifecycle.rollover_alias: "filebeat"

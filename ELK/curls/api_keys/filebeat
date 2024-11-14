@@ -1,0 +1,15 @@
+POST /_security/api_key
+{
+  "name": "filebeat_host", 
+  "role_descriptors": {
+    "filebeat_writer": { 
+      "cluster": ["monitor", "read_ilm", "read_pipeline", "manage_ilm", "manage_index_templates"],
+      "index": [
+        {
+          "names": ["filebeat-*"],
+          "privileges": ["create_index", "view_index_metadata", "create_doc", "auto_configure", "manage_follow_index"]
+        }
+      ]
+    }
+  }
+}

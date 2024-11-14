@@ -1,0 +1,9 @@
+apm-server:
+  host: "192.168.45.179:8200"
+
+output.elasticsearch:
+  hosts: ["localhost:9200"]
+  protocol: "https"
+  api_key: "${ELASTICSEARCH_API_KEY}"
+  ssl: 
+    certificate_authorities: ["/etc/apm-server/http_ca.crt"]
