@@ -1,0 +1,76 @@
+version: "3.8"
+
+services:
+  # MySQL Database service
+  mysql:
+    image: mysql:8
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+    ports:
+      - "3307:3306" #  MySQL container port 3306 mapped to host's 3307
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mounting the init.sql script inorder to create 4 databases.
+    networks:
+      - app-network
+
+  # Redis Cache service
+  redis:
+    image: redis:latest
+    container_name: redis-container
+    ports:
+      - "6380:6379" # Redis container port 6379 mapped to host's 6380
+    networks:
+      - app-network
+
+  # JDK 17 for Spring Boot development
+  jdk17:
+    image: openjdk:17-jdk-slim
+    container_name: jdk-container
+    environment:
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk
+      SPRING_PROFILES_ACTIVE: dev
+      JAVA_OPTS: "-Xms2g -Xmx4g" # Setting memory allocation for the JVM
+    command: bash -c "tail -f /dev/null"
+    ports:
+      - "8081:8080" # for now we are exposing the port 4200(for demo purpose in  future versinos all the backend ports are exposed)
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - app-network
+
+  # Maven service
+  maven:
+    image: maven:3.8.8-eclipse-temurin-17
+    container_name: maven-container
+    command: bash -c "tail -f /dev/null"
+    networks:
+      - app-network
+
+  # Node.js service
+  nodejs:
+    image: node:18
+    container_name: nodejs-container
+    environment:
+      NODE_ENV: development
+    command: bash -c "npm install -g @angular/cli@16 && echo 'Angular CLI 16 is ready for use' && tail -f /dev/null"
+    ports:
+      - "4201:4200" # for now we are exposing the port 4200(for demo purpose in  future versinos all the frontend ports are exposed)
+    networks:
+      - app-network
+
+  git:
+    image: alpine/git
+    container_name: git-container
+    command: bash -c "tail -f /dev/null" # git for cloning the projects under AMRIT
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
