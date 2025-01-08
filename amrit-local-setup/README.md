@@ -20,13 +20,15 @@ The setup leverages containerization for consistent development environments acr
 Initialize the containerized services:
 
 ```bash
-docker-compose up --build
+docker-compose up
 ```
 
 #### Service Endpoints
 
-- MySQL Instance: `localhost:3307`
-- Redis Instance: `localhost:4407`
+- MySQL Instance: `localhost:3306`
+- Redis Instance: `localhost:6379`
+
+If on host the above servies are running then stop the MySql and Redis Instances of your local system.
 
 ### 2. Schema Management Service Deployment
 
@@ -44,8 +46,8 @@ cd AMRIT-DB
 Execute Maven build sequence:
 
 ```bash
-mvn clean install
-mvn spring-boot:run
+mvn clean install -DENV_VAR=local
+mvn spring-boot:run -DENV_VAR=local
 ```
 
 ### 3. Load the dummy Data corresponding to the schema
