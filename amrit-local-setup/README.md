@@ -15,6 +15,13 @@ The setup leverages containerization for consistent development environments acr
 
 ## Deployment Steps
 
+First, clone the DevOps repository and navigate to the local setup directory:
+
+```bash
+git clone https://github.com/PSMRI/AMRIT-DevOps.git
+cd AMRIT-DevOps/amrit-local-setup
+```
+
 ### 1. Container Orchestration
 
 Initialize the containerized services:
@@ -28,7 +35,7 @@ docker-compose up
 - MySQL Instance: `localhost:3306`
 - Redis Instance: `localhost:6379`
 
-If on host the above servies are running then stop the MySql and Redis Instances of your local system.
+**Important:** If these services are already running on your host machine, stop the local MySQL and Redis instances before proceeding.
 
 ### 2. Schema Management Service Deployment
 
@@ -39,32 +46,39 @@ git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
 ```
 
-**Note**: Verify container is alive.
+**Note:** Before proceeding:
 
-#### Build Configuration
+- Verify that the Docker container is running
+- Refer to the [Amrit-DB documentation](https://github.com/PSMRI/AMRIT-DB/blob/main/README.md) for detailed schema setup instructions
 
-Execute Maven build sequence:
-
-```bash
-mvn clean install -DENV_VAR=local
-mvn spring-boot:run -DENV_VAR=local
-```
-
-### 3. Load the dummy Data corresponding to the schema
+### 3. Load Sample Data
 
 #### Data Package Setup
 
-1. Download the Data zip folder(Amrit_MastersData.zip) from this [link](https://piramal-swasthya.gitbook.io/amrit/data-management/database-schema)
-2. Extract archive contents
-3. Configure data path(Line 10) in `loaddummydata.sh`(Linux/MacOS) or in `loaddummydata.bat`(Windows)
+1. Download the Data zip folder (`Amrit_MastersData.zip`) from the [official documentation](https://piramal-swasthya.gitbook.io/amrit/data-management/database-schema)
+2. Extract the archive contents
+3. Update the data path in the appropriate script:
+   - Line 10 in `loaddummydata.sh` (Linux/MacOS)
+   - Line 10 in `loaddummydata.bat` (Windows)
 
 #### Execute Data Load
 
+For Linux/Unix systems:
+
 ```bash
-# Linux/Unix Systems
 ./loaddummydata.sh
-
-# Windows Environment(PowerShell)
-.\loaddummydata.bat
-
 ```
+
+For Windows (PowerShell):
+
+```bash
+.\loaddummydata.bat
+```
+
+The data will be loaded and persistently stored in the containerized MySQL instance.
+
+## Troubleshooting
+
+- Ensure all ports (3306, 6379) are available before starting the containers
+- Verify Docker daemon is running before executing docker-compose
+- Check container logs if services fail to start
