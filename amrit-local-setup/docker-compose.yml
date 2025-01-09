@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  # MySQL Database service
+  mysql:
+    image: mysql:8.0.34
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+    ports:
+      - "3306:3306" #  MySQL container port 3306 mapped to host's 3306
+    volumes:
+      - ./my.cnf:/etc/mysql/my.cnf:ro # Mounting the my.cnf file to the sql container
+      - mysql-data:/var/lib/mysql # Mounting the mysql-data volume to the sql container
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mounting the init.sql script inorder to create 4 databases.
+    networks:
+      - app-network
+
+  # Redis Cache service
+  redis:
+    image: redis:7.2.4
+    container_name: redis-container
+    ports:
+      - "6379:6379" # Redis container port 6379 mapped to host's 6379(if running on host then stop the service on the host!)
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
