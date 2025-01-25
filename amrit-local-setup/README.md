@@ -37,13 +37,23 @@ docker-compose up
 
 **Important:** If these services are already running on your host machine, stop the local MySQL and Redis instances before proceeding.
 
-### 2. Schema Management Service Deployment
+### 2. Database Schema Management Service Deployment
 
 #### Repository Configuration
 
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
+```
+
+#### Setup instructions
+
+Follow these steps to setup datbase schema.
+
+```bash
+cp src/main/environment/common_example.properties src/main/environment/common_local.properties 
+mvn clean install -DENV_VAR=local
+mvn spring-boot:run -DENV_VAR=local
 ```
 
 **Note:** Before proceeding:
