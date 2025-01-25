@@ -6,7 +6,7 @@ PORT="3306"
 USER="root"
 PASSWORD="1234"
 # Path to the extracted SQL files
-SQL_DIR="/home/asp-irin/Desktop/amrit/main-repo/AmritMasterData"
+SQL_DIR=<PATH to the extracted files directory>
 
 # Files and their respective databases
 FILES="AmritMasterData.sql m_beneficiaryregidmapping_dump_1097.sql m_beneficiaryregidmapping_dump.sql"
