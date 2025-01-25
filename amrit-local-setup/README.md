@@ -40,7 +40,7 @@ docker-compose up
 **Note:** Before proceeding:
 
 - Verify that the Docker container is running
-### 2. Schema Management Service Deployment
+### 2. Database Schema Management Service Deployment
 
 #### Repository Configuration
 
