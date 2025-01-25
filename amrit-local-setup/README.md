@@ -37,6 +37,9 @@ docker-compose up
 
 **Important:** If these services are already running on your host machine, stop the local MySQL and Redis instances before proceeding.
 
+**Note:** Before proceeding:
+
+- Verify that the Docker container is running
 ### 2. Schema Management Service Deployment
 
 #### Repository Configuration
@@ -45,11 +48,46 @@ docker-compose up
 git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
 ```
+1. **Setup Local Properties**:  
+   - Copy `common_example.properties` to `common_local.properties` and update it for your environment.  
+   - File location: `src/main/environment`  
 
-**Note:** Before proceeding:
+2. **Create Build Configuration in STS/Eclipse**:  
+   - Go to **Run > Run Configurations**.  
+   - Select **Maven Build** and create a new configuration.  
+   - Set the **Base Directory** to the `AMRIT-DB` module.  
+   - Set **Goals** to:  
+     ```
+     clean install -DENV_VAR=local
+     ```  
+   - Go to **Environment** tab and click **Add**.  Set
+     ```
+     Name : ENV_VAR 
+     Value: local
+     ```
+   - Apply and run the configuration.
 
-- Verify that the Docker container is running
-- Refer to the [Amrit-DB documentation](https://github.com/PSMRI/AMRIT-DB/blob/main/README.md) for detailed schema setup instructions
+   **Through CLI**:
+      ```
+      mvn clean install -DENV_VAR=local
+     ```
+
+---
+
+## Run Configuration  
+
+1. **Setup Spring Boot Configuration**:  
+   - Go to **Run > Run Configurations**.  
+   - Select **Spring Boot App (STS)** or **Java Application (Eclipse)** and create a new configuration.  
+   - Choose the project and main class.  
+   - Apply and run the configuration.  
+
+   **Through CLI**:
+      ```
+      mvn spring-boot:run -DENV_VAR=local
+     ```
+
+---
 
 ### 3. Load Sample Data
 
