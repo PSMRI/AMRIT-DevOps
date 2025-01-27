@@ -52,41 +52,18 @@ cd AMRIT-DB
    - Copy `common_example.properties` to `common_local.properties` and update it for your environment.  
    - File location: `src/main/environment`  
 
-2. **Create Build Configuration in STS/Eclipse**:  
-   - Go to **Run > Run Configurations**.  
-   - Select **Maven Build** and create a new configuration.  
-   - Set the **Base Directory** to the `AMRIT-DB` module.  
-   - Set **Goals** to:  
-     ```
-     clean install -DENV_VAR=local
-     ```  
-   - Go to **Environment** tab and click **Add**.  Set
-     ```
-     Name : ENV_VAR 
-     Value: local
-     ```
-   - Apply and run the configuration.
-
-   **Through CLI**:
+2. **Create Build Configuration through CLI**:
       ```
       mvn clean install -DENV_VAR=local
      ```
-
 ---
 
 ## Run Configuration  
 
-1. **Setup Spring Boot Configuration**:  
-   - Go to **Run > Run Configurations**.  
-   - Select **Spring Boot App (STS)** or **Java Application (Eclipse)** and create a new configuration.  
-   - Choose the project and main class.  
-   - Apply and run the configuration.  
-
-   **Through CLI**:
+1. **Setup Spring Boot through CLI**:
       ```
       mvn spring-boot:run -DENV_VAR=local
      ```
-
 ---
 
 ### 3. Load Sample Data
