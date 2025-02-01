@@ -11,7 +11,7 @@
 
 ## Architecture Overview
 
-The setup leverages containerization for consistent development environments across the team. Core services are orchestrated via Docker, with MySQL and Redis instances running in isolated containers.
+The setup leverages containerization for consistent development environments across the team. Core services are orchestrated via Docker, with MySQL, Mongo and Redis instances running in isolated containers.
 
 ## Deployment Steps
 
@@ -34,8 +34,9 @@ docker-compose up
 
 - MySQL Instance: `localhost:3306`
 - Redis Instance: `localhost:6379`
+- Mongo Instance: `localhost:27017`
 
-**Important:** If these services are already running on your host machine, stop the local MySQL and Redis instances before proceeding.
+**Important:** If these services are already running on your host machine, stop the local MySQL, Mongo and Redis instances before proceeding.
 
 **Note:** Before proceeding:
 
@@ -49,7 +50,7 @@ git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
 ```
 1. **Setup Local Properties**:  
-   - Copy `common_example.properties` to `common_local.properties` and update it for your environment.  
+   - Copy `common_example.properties` to `common_local.properties`.  
    - File location: `src/main/environment`  
 
 2. **Create Build Configuration through CLI**:
@@ -94,6 +95,6 @@ The data will be loaded and persistently stored in the containerized MySQL insta
 
 ## Troubleshooting
 
-- Ensure all ports (3306, 6379) are available before starting the containers
+- Ensure all ports (3306, 6379, 27017) are available before starting the containers
 - Verify Docker daemon is running before executing docker-compose
 - Check container logs if services fail to start
