@@ -598,9 +598,6 @@ services:
     volumes:
       - ./my.cnf:/etc/mysql/my.cnf
       - mysql-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    entrypoint:
-      ["sh", "-c", "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"]
     networks:
       - amrit-network
     ports:
