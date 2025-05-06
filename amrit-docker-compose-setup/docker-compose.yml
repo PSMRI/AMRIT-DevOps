@@ -1,0 +1,652 @@
+version: "3.8"
+
+services:
+  # NGINX Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: amrit-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      # Mount static UI builds
+      - ./UI/ADMIN-UI/dist:/usr/share/nginx/html/admin
+      - ./UI/HWC-UI/dist:/usr/share/nginx/html/hwc
+      - ./UI/Inventory-UI/dist:/usr/share/nginx/html/inventory
+      - ./UI/TM-UI/dist:/usr/share/nginx/html/tm
+      - ./UI/MMU-UI/dist:/usr/share/nginx/html/mmu
+      - ./UI/Scheduler-UI/dist:/usr/share/nginx/html/scheduler
+      - ./UI/HWC-Scheduler-UI/dist:/usr/share/nginx/html/hwc-scheduler
+      - ./UI/HWC-Inventory-UI/dist:/usr/share/nginx/html/hwc-inventory
+      - ./UI/ECD-UI/dist:/usr/share/nginx/html/ecd
+      - ./UI/Helpline104-UI/dist:/usr/share/nginx/html/helpline104
+      - ./UI/Helpline1097-UI/dist:/usr/share/nginx/html/helpline1097
+      - ./UI/Common-UI/dist:/usr/share/nginx/html/common
+    networks:
+      - amrit-network
+    depends_on:
+      - identity-api
+      - admin-api
+      - hwc-api
+      - inventory-api
+      - tm-api
+      - mmu-api
+      - scheduler-api
+      - ecd-api
+      - common-api
+      - fhir-api
+      - flw-api
+      - helpline104-api
+      - helpline1097-api
+      - beneficiaryid-generation-api
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:80/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Services
+  identity-api:
+    build:
+      context: ./API/Identity-API
+      dockerfile: Dockerfile
+    container_name: identity-api-container
+    ports:
+      - "8094:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_identity
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/identity-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  admin-api:
+    build:
+      context: ./API/Admin-API
+      dockerfile: Dockerfile
+    container_name: admin-api-container
+    ports:
+      - "8082:8080"
+    networks:
+      - amrit-network
+    volumes:
+      - ./logs/admin-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  common-api:
+    build:
+      context: ./API/Common-API
+      dockerfile: Dockerfile
+    container_name: common-api-container
+    ports:
+      - "8083:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/common-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  ecd-api:
+    build:
+      context: ./API/ECD-API
+      dockerfile: Dockerfile
+    container_name: ecd-api-container
+    ports:
+      - "8084:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/ecd-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  hwc-api:
+    build:
+      context: ./API/HWC-API
+      dockerfile: Dockerfile
+    container_name: hwc-api-container
+    ports:
+      - "8085:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/hwc-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  inventory-api:
+    build:
+      context: ./API/Inventory-API
+      dockerfile: Dockerfile
+    container_name: inventory-api-container
+    ports:
+      - "8086:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/inventory-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  tm-api:
+    build:
+      context: ./API/TM-API
+      dockerfile: Dockerfile
+    container_name: tm-api-container
+    ports:
+      - "8089:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/tm-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  mmu-api:
+    build:
+      context: ./API/MMU-API
+      dockerfile: Dockerfile
+    container_name: mmu-api-container
+    ports:
+      - "8087:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/mmu-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  scheduler-api:
+    build:
+      context: ./API/Scheduler-API
+      dockerfile: Dockerfile
+    container_name: scheduler-api-container
+    ports:
+      - "8088:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/scheduler-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  fhir-api:
+    build:
+      context: ./API/FHIR-API
+      dockerfile: Dockerfile
+    container_name: fhir-api-container
+    ports:
+      - "8093:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/fhir-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  flw-api:
+    build:
+      context: ./API/FLW-API
+      dockerfile: Dockerfile
+    container_name: flw-api-container
+    ports:
+      - "8081:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/flw-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  helpline104-api:
+    build:
+      context: ./API/Helpline104-API
+      dockerfile: Dockerfile
+    container_name: helpline104-api-container
+    ports:
+      - "8091:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/helpline104-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  helpline1097-api:
+    build:
+      context: ./API/Helpline1097-API
+      dockerfile: Dockerfile
+    container_name: helpline1097-api-container
+    ports:
+      - "8090:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_1097_identity
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/helpline1097-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  beneficiaryid-generation-api:
+    build:
+      context: ./API/BeneficiaryID-Generation-API
+      dockerfile: Dockerfile
+    container_name: beneficiaryid-generation-api-container
+    ports:
+      - "8092:8080"
+    networks:
+      - amrit-network
+    environment:
+      - SPRING_PROFILES_ACTIVE=ci
+      - ENV_VAR=ci
+      - SERVER_PORT=8080
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_identity
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - JWT_SECRET=amrit-secret-key
+      - SPRING_REDIS_HOST=redis
+      - SPRINGDOC_API_DOCS_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_ENABLED=true
+      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
+    volumes:
+      - ./logs/beneficiaryid-generation-api:/usr/local/tomcat/logs
+    depends_on:
+      - mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/actuator/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database service
+  mysql:
+    image: mysql:8.0.34
+    container_name: mysql-container
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+    volumes:
+      - ./my.cnf:/etc/mysql/my.cnf
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    entrypoint:
+      ["sh", "-c", "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"]
+    networks:
+      - amrit-network
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test:
+        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Redis service
+  redis:
+    image: redis:7.2.4
+    container_name: redis-container
+    restart: always
+    networks:
+      - amrit-network
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MongoDB service
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb-container
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dbuser
+      MONGO_INITDB_ROOT_PASSWORD: 1234
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - amrit-network
+
+# Amrit network
+networks:
+  amrit-network:
+    driver: bridge
+
+# Volumes
+volumes:
+  mysql-data:
+  mongodb-data:
