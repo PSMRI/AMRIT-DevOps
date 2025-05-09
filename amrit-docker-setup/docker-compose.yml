@@ -21,7 +21,6 @@ services:
       - ./UI/ECD-UI/dist:/usr/share/nginx/html/ecd
       - ./UI/Helpline104-UI/dist:/usr/share/nginx/html/helpline104
       - ./UI/Helpline1097-UI/dist:/usr/share/nginx/html/helpline1097
-      - ./UI/Common-UI/dist:/usr/share/nginx/html/common
     networks:
       - amrit-network
     depends_on:
@@ -63,22 +62,12 @@ services:
       - "8094:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_identity
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/identity-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -87,7 +76,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -106,6 +95,8 @@ services:
       - ./logs/admin-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -114,7 +105,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -129,22 +120,12 @@ services:
       - "8083:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/common-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -153,7 +134,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -168,22 +149,12 @@ services:
       - "8084:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/ecd-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -192,7 +163,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -207,22 +178,12 @@ services:
       - "8085:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/hwc-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -231,7 +192,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -246,22 +207,12 @@ services:
       - "8086:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/inventory-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -270,7 +221,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -285,22 +236,12 @@ services:
       - "8089:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/tm-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -309,7 +250,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -324,22 +265,12 @@ services:
       - "8087:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/mmu-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -348,7 +279,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -363,22 +294,12 @@ services:
       - "8088:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/scheduler-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -387,7 +308,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -402,22 +323,12 @@ services:
       - "8093:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/fhir-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -426,7 +337,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -441,22 +352,12 @@ services:
       - "8081:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/flw-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -465,7 +366,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -480,22 +381,12 @@ services:
       - "8091:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_iemr
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/helpline104-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -504,7 +395,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -519,22 +410,12 @@ services:
       - "8090:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_1097_identity
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/helpline1097-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -543,7 +424,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -558,22 +439,12 @@ services:
       - "8092:8080"
     networks:
       - amrit-network
-    environment:
-      - SPRING_PROFILES_ACTIVE=ci
-      - ENV_VAR=ci
-      - SERVER_PORT=8080
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/db_identity
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=1234
-      - JWT_SECRET=amrit-secret-key
-      - SPRING_REDIS_HOST=redis
-      - SPRINGDOC_API_DOCS_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_ENABLED=true
-      - SPRINGDOC_SWAGGER_UI_PATH=/swagger-ui.html
     volumes:
       - ./logs/beneficiaryid-generation-api:/usr/local/tomcat/logs
     depends_on:
       - mysql
+    env_file:
+      - ./.env
     healthcheck:
       test:
         [
@@ -582,7 +453,7 @@ services:
           "--no-verbose",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/actuator/health",
+          "http://localhost:8080/v3/api-docs",
         ]
       interval: 30s
       timeout: 10s
@@ -593,18 +464,26 @@ services:
     image: mysql:8.0.34
     container_name: mysql-container
     restart: always
-    environment:
-      - MYSQL_ROOT_PASSWORD=1234
-    volumes:
-      - ./my.cnf:/etc/mysql/my.cnf
-      - mysql-data:/var/lib/mysql
+    env_file:
+      - ./.env
+    # volumes:
+    #   - mysql-data:/var/lib/mysql
     networks:
       - amrit-network
     ports:
       - "3307:3306"
     healthcheck:
       test:
-        ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1234"]
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${MYSQL_ROOT_PASSWORD}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -623,20 +502,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-
-  # MongoDB service
-  mongodb:
-    image: mongo:6.0
-    container_name: mongodb-container
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: dbuser
-      MONGO_INITDB_ROOT_PASSWORD: 1234
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb-data:/data/db
-    networks:
-      - amrit-network
 
 # Amrit network
 networks:
