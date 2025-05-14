@@ -41,8 +41,6 @@ UI_REPOS=(
   "https://github.com/PSMRI/HWC-Inventory-UI"
   "https://github.com/PSMRI/Scheduler-UI"
   "https://github.com/PSMRI/ECD-UI"
-  "https://github.com/PSMRI/Helpline1097-UI"
-  "https://github.com/PSMRI/Helpline104-UI"
 )
 
 # Clone API repositories
@@ -79,8 +77,34 @@ done
 
 echo "=== All repositories cloned successfully ==="
 
-# Setup and build UI applications
-echo "=== Setting up and building UI applications ==="
+# Function to fix nested dist directories
+fix_dist_structure() {
+  local project=$1
+  echo "Checking dist structure for $project..."
+  
+  # Check if the project has a nested dist structure
+  if [ -d "dist/$project" ]; then
+    echo "Found nested structure in $project, fixing..."
+    
+    # Create a temporary directory
+    mkdir -p "dist_temp"
+    
+    # Move all files from nested directory to temp
+    mv "dist/$project"/* "dist_temp/"
+    
+    # Remove the old dist directory
+    rm -rf "dist"
+    
+    # Rename temp to dist
+    mv "dist_temp" "dist"
+    
+    echo "Fixed $project dist structure"
+  else
+    echo "$project has correct dist structure, skipping"
+  fi
+}
+
+# Script to build all Angular UI applications for NGINX hosting
 
 UI_PROJECTS=(
   "ADMIN-UI"
@@ -96,37 +120,7 @@ UI_PROJECTS=(
   "Helpline104-UI"
 )
 
-# Function to setup environment files
-setup_environment() {
-  local project=$1
-  echo "Setting up environment for $project..."
-  
-  # Ensure environment.ts exists (create if it doesn't)
-  touch src/environments/environment.ts
-  
-  # Check if environment.local.ts exists and copy it to environment.ts
-  if [ -f "src/environments/environment.local.ts" ]; then
-    cp src/environments/environment.local.ts src/environments/environment.ts
-    echo "Copied environment.local.ts to environment.ts for $project"
-  elif [ -f "src/environments/environment.ts.template" ]; then
-    cp src/environments/environment.ts.template src/environments/environment.ts
-    echo "Copied environment.ts.template to environment.ts for $project"
-  else
-    echo "Warning: No environment template found for $project, using default empty environment.ts"
-  fi
-}
-
-# Function to prepare scripts directory
-prepare_scripts() {
-  local project=$1
-  echo "Preparing scripts for $project..."
-  
-  # Make scripts executable if they exist
-  if [ -d "scripts" ]; then
-    chmod +x ./scripts/*.js 2>/dev/null || true
-    echo "Made scripts executable for $project"
-  fi
-}
+echo "=== Setting up and building UI applications ==="
 
 # Loop through each UI project and build it
 for project in "${UI_PROJECTS[@]}"; do
@@ -134,50 +128,25 @@ for project in "${UI_PROJECTS[@]}"; do
   
   cd "UI/$project"
   
-  # Ensure submodules are initialized (run again to be safe)
-  echo "Updating submodules for $project..."
-  git submodule update --init --recursive
-  
-  # Setup environment files
-  setup_environment "$project"
-  
-  # Prepare scripts directory
-  prepare_scripts "$project"
-  
-  # Install dependencies with legacy peer deps to avoid Angular version conflicts
-  echo "Installing dependencies for $project..."
-  npm install --legacy-peer-deps
+  # Check if node_modules exists, if not install dependencies
+  if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies for $project..."
+    npm install
+  fi
   
   # Build the project with production configuration
+  # Adjust the build command based on your Angular version and requirements
   echo "Building $project..."
-  
-  # Try the build-ci command with increased memory allocation
-  echo "Executing build-ci command for $project..."
-  if [ -f "scripts/ci-prebuild.js" ]; then
-    # If project has ci-prebuild script, use the full build-ci process
-    chmod +x ./scripts/*.js 2>/dev/null || true
-    ./scripts/ci-prebuild.js
-    node --max_old_space_size=5048 ./node_modules/@angular/cli/bin/ng build --configuration=ci --aot
-  elif npm run build-ci 2>/dev/null; then
-    echo "Build completed using build-ci command"
-  elif npm run build 2>/dev/null; then
-    echo "Build completed using build command"
-  else
-    echo "Attempting to build with custom configuration..."
-    # Try with ng build for projects that might not have specific build scripts
-    if [ -f "node_modules/.bin/ng" ]; then
-      node --max_old_space_size=5048 ./node_modules/@angular/cli/bin/ng build --configuration=production --aot
-    else
-      echo "Build failed for $project, could not find build method"
-      exit 1
-    fi
-  fi
+  npm run build-ci
   
   # Ensure dist directory exists
   if [ ! -d "dist" ]; then
     echo "Build failed for $project, dist directory not created"
     exit 1
   fi
+  
+  # Fix nested dist structure if needed
+  fix_dist_structure "$project"
   
   echo "$project built successfully"
   cd ../../

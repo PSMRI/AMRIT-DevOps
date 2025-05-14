@@ -1,0 +1,27 @@
+FROM nginx:alpine
+
+# Remove the default nginx static files
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy NGINX configuration files
+COPY ./nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY ./nginx/conf.d/proxy_settings.conf /etc/nginx/conf.d/proxy_settings.conf
+
+# Copy all static UI builds into specific subfolders
+COPY ./UI/ADMIN-UI/dist /usr/share/nginx/html/admin
+COPY ./UI/HWC-UI/dist /usr/share/nginx/html/hwc
+COPY ./UI/Inventory-UI/dist /usr/share/nginx/html/inventory
+COPY ./UI/TM-UI/dist /usr/share/nginx/html/tm
+COPY ./UI/MMU-UI/dist /usr/share/nginx/html/mmu
+COPY ./UI/Scheduler-UI/dist /usr/share/nginx/html/scheduler
+COPY ./UI/HWC-Scheduler-UI/dist /usr/share/nginx/html/hwc-scheduler
+COPY ./UI/HWC-Inventory-UI/dist /usr/share/nginx/html/hwc-inventory
+COPY ./UI/ECD-UI/dist /usr/share/nginx/html/ecd
+# COPY ./UI/Helpline104-UI/dist /usr/share/nginx/html/helpline104
+# COPY ./UI/Helpline1097-UI/dist /usr/share/nginx/html/helpline1097
+
+# Expose port 80
+EXPOSE 80
+
+# Set proper permissions
+RUN chmod -R 755 /usr/share/nginx/html 
