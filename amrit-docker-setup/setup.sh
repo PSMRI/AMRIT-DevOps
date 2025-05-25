@@ -116,8 +116,6 @@ UI_PROJECTS=(
   "HWC-Scheduler-UI"
   "HWC-Inventory-UI"
   "ECD-UI"
-  "Helpline1097-UI"
-  "Helpline104-UI"
 )
 
 echo "=== Setting up and building UI applications ==="

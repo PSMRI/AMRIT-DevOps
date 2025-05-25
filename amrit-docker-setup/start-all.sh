@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -euo pipefail
 
 # Start infrastructure services first
 echo "Starting infrastructure services (MySQL, Redis, MongoDB)..."
@@ -7,7 +7,7 @@ docker compose -f docker-compose.infra.yml up -d
 
 # Wait for MySQL to be ready
 echo "Waiting for MySQL to be ready..."
-until docker exec mysql-container mysqladmin ping -h localhost -u root -p1234 --silent; do
+until docker exec mysql-container mysqladmin ping -h localhost -u root -p"${MYSQL_ROOT_PASSWORD}" --silent; do
   echo "MySQL is starting up..."
   sleep 3
 done

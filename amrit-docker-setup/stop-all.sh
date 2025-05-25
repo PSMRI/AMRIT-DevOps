@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Stop application services first
 echo "Stopping application services..."

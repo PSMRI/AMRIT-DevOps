@@ -1,11 +1,15 @@
+version: '3.9'
+
 services:
   # MySQL Database service
   mysql:
-    image: mysql:8.0.34
+    image: mysql:8.0
     container_name: mysql-container
     restart: unless-stopped
     env_file:
       - ./.env
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
     ports:
       - "3306:3306"
     volumes:
