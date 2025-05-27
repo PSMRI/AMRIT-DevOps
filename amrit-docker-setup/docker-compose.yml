@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   # NGINX Reverse Proxy
@@ -121,6 +121,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   ecd-api:
     build:
@@ -353,6 +354,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
   helpline104-api:
     build:
@@ -440,6 +442,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
 # Amrit network
 networks:
