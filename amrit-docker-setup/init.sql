@@ -1,28 +1,31 @@
--- Create databases if they don't exist
+-- Create databases
 CREATE DATABASE IF NOT EXISTS db_iemr;
 CREATE DATABASE IF NOT EXISTS db_identity;
 CREATE DATABASE IF NOT EXISTS db_reporting;
 CREATE DATABASE IF NOT EXISTS db_1097_identity;
 
--- Create database user with privileges
-CREATE USER IF NOT EXISTS '${DATABASE_USERNAME}'@'%' IDENTIFIED BY '${DATABASE_PASSWORD}';
+-- Create user with proper privileges
+CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';
 
--- Grant privileges to the user for all databases
-GRANT ALL PRIVILEGES ON db_iemr.* TO '${DATABASE_USERNAME}'@'%';
-GRANT ALL PRIVILEGES ON db_identity.* TO '${DATABASE_USERNAME}'@'%';
-GRANT ALL PRIVILEGES ON db_reporting.* TO '${DATABASE_USERNAME}'@'%';
-GRANT ALL PRIVILEGES ON db_1097_identity.* TO '${DATABASE_USERNAME}'@'%';
+-- Grant privileges
+GRANT ALL PRIVILEGES ON db_iemr.* TO '$MYSQL_USER'@'%';
+GRANT ALL PRIVILEGES ON db_identity.* TO '$MYSQL_USER'@'%';
+GRANT ALL PRIVILEGES ON db_reporting.* TO '$MYSQL_USER'@'%';
+GRANT ALL PRIVILEGES ON db_1097_identity.* TO '$MYSQL_USER'@'%';
 
--- Apply changes
 FLUSH PRIVILEGES;
 
 -- Create required views
 USE db_iemr;
 
+-- Drop view if exists to avoid errors
+DROP VIEW IF EXISTS v_emailstockalert;
+
+-- Create the view with error handling
 CREATE OR REPLACE VIEW v_emailstockalert AS
 SELECT 
     UUID() as uuid,
-    i.totalQuantity as Totalquantity,
+    COALESCE(i.totalQuantity, 0) as Totalquantity,
     i.createdBy as CreatedBy,
     d.districtName as DistrictName,
     u.emailID as Emailid,
@@ -30,12 +33,15 @@ SELECT
     f.facilityName as FacilityName,
     im.itemID as ItemID,
     im.itemName as ItemName,
-    i.quantityInHand as Quantityinhand,
-    ROUND((i.quantityInHand / i.totalQuantity) * 100, 2) as QuantityinhandPercent
+    COALESCE(i.quantityInHand, 0) as Quantityinhand,
+    CASE 
+        WHEN i.totalQuantity > 0 THEN ROUND((i.quantityInHand / i.totalQuantity) * 100, 2)
+        ELSE 0 
+    END as QuantityinhandPercent
 FROM m_facility f
-JOIN m_district d ON f.districtID = d.districtID
-JOIN m_user u ON f.facilityID = u.facilityID
-JOIN t_itemstock i ON f.facilityID = i.facilityID
-JOIN m_item im ON i.itemID = im.itemID
-WHERE i.deleted = FALSE
-AND i.quantityInHand <= (i.totalQuantity * 0.2); 
+LEFT JOIN m_district d ON f.districtID = d.districtID
+LEFT JOIN m_user u ON f.facilityID = u.facilityID
+LEFT JOIN t_itemstock i ON f.facilityID = i.facilityID AND i.deleted = FALSE
+LEFT JOIN m_item im ON i.itemID = im.itemID
+WHERE i.quantityInHand <= (i.totalQuantity * 0.2)
+OR i.quantityInHand IS NULL; 

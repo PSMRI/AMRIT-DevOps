@@ -41,6 +41,7 @@ services:
       dockerfile: Dockerfile
     container_name: identity-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8094:8080"
     networks:
@@ -51,18 +52,11 @@ services:
     env_file:
       - ./.env
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/v3/api-docs",
-        ]
-      interval: 30s
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:8080/v3/api-docs"]
+      interval: 45s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
   admin-api:
     build:
@@ -70,6 +64,7 @@ services:
       dockerfile: Dockerfile
     container_name: admin-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8082:8080"
     networks:
@@ -80,18 +75,11 @@ services:
     env_file:
       - ./.env
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/v3/api-docs",
-        ]
-      interval: 30s
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:8080/v3/api-docs"]
+      interval: 45s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 60s
 
   common-api:
     build:
@@ -99,6 +87,7 @@ services:
       dockerfile: Dockerfile
     container_name: common-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8083:8080"
     networks:
@@ -109,19 +98,11 @@ services:
     env_file:
       - ./.env
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/v3/api-docs",
-        ]
-      interval: 30s
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:8080/v3/api-docs"]
+      interval: 45s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
 
   ecd-api:
     build:
@@ -129,6 +110,7 @@ services:
       dockerfile: Dockerfile
     container_name: ecd-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8084:8080"
     networks:
@@ -158,6 +140,7 @@ services:
       dockerfile: Dockerfile
     container_name: hwc-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8085:8080"
     networks:
@@ -187,6 +170,7 @@ services:
       dockerfile: Dockerfile
     container_name: inventory-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8086:8080"
     networks:
@@ -216,6 +200,7 @@ services:
       dockerfile: Dockerfile
     container_name: tm-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8089:8080"
     networks:
@@ -245,6 +230,7 @@ services:
       dockerfile: Dockerfile
     container_name: mmu-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8087:8080"
     networks:
@@ -274,6 +260,7 @@ services:
       dockerfile: Dockerfile
     container_name: scheduler-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8088:8080"
     networks:
@@ -303,6 +290,7 @@ services:
       dockerfile: Dockerfile
     container_name: fhir-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8093:8080"
     networks:
@@ -332,6 +320,7 @@ services:
       dockerfile: Dockerfile
     container_name: flw-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8081:8080"
     networks:
@@ -342,19 +331,11 @@ services:
     env_file:
       - ./.env
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "--no-verbose",
-          "--tries=1",
-          "--spider",
-          "http://localhost:8080/v3/api-docs",
-        ]
-      interval: 30s
+      test: ["CMD", "wget", "--no-verbose", "--tries=3", "--spider", "http://localhost:8080/v3/api-docs"]
+      interval: 45s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 60s
 
   helpline104-api:
     build:
@@ -362,6 +343,7 @@ services:
       dockerfile: Dockerfile
     container_name: helpline104-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8091:8080"
     networks:
@@ -391,6 +373,7 @@ services:
       dockerfile: Dockerfile
     container_name: helpline1097-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8090:8080"
     networks:
@@ -420,6 +403,7 @@ services:
       dockerfile: Dockerfile
     container_name: beneficiaryid-generation-api-container
     restart: unless-stopped
+    command: ["--server.forward-headers-strategy=framework"]
     ports:
       - "8092:8080"
     networks:

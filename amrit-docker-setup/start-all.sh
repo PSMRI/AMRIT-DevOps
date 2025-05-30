@@ -6,7 +6,7 @@ docker compose -f docker-compose.infra.yml up -d
 
 # Load .env file if exists
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  export "$(grep -v '^#' .env | xargs)"
 fi
 
 # Wait for MySQL
