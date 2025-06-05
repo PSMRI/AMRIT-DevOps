@@ -129,7 +129,7 @@ for project in "${UI_PROJECTS[@]}"; do
   # Check if node_modules exists, if not install dependencies
   if [ ! -d "node_modules" ]; then
     echo "Installing dependencies for $project..."
-    npm install
+    npm install --legacy-peer-deps
   fi
   
   # Build the project with production configuration
