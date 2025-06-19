@@ -37,9 +37,6 @@ This directory contains everything needed to deploy the AMRIT platform using Doc
    # For Linux/Mac
    chmod +x start-all.sh
    ./start-all.sh
-
-   # For Windows
-   start-all.bat
    ```
 
    This will:
@@ -91,8 +88,8 @@ AMRIT-DevOps/
     ├── docker-compose.infra.yml # Infrastructure Docker Compose configuration
     ├── .env                     # Environment variables (not tracked by Git)
     ├── setup.sh                 # Setup script
-    ├── start-all.sh/bat         # Scripts to start all services
-    └── stop-all.sh/bat          # Scripts to stop all services
+    ├── start-all.sh             # Scripts to start all services
+    └── stop-all.sh              # Scripts to stop all services
 ```
 
 > **Note:** The `API/`, `UI/`, and `logs/` directories are excluded from Git tracking via the `.gitignore` file. When cloning this repository, these directories will be empty until you run the setup script.
