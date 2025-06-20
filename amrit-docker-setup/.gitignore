@@ -1,0 +1,9 @@
+# Ignore API and UI directories
+/API/
+/UI/
+
+# Logs
+/logs/
+
+# Environment variables
+.env

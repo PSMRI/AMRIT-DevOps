@@ -13,7 +13,8 @@ services:
       - ./my.cnf:/etc/mysql/my.cnf # Mounting the my.cnf file to the sql container
       - mysql-data:/var/lib/mysql # Mounting the mysql-data volume to the sql container
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Mounting the init.sql script in order to create 4 databases.
-    entrypoint: [ "sh", "-c", "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld" ]
+    entrypoint:
+      ["sh", "-c", "chmod 644 /etc/mysql/my.cnf && docker-entrypoint.sh mysqld"]
     networks:
       - app-network
 
