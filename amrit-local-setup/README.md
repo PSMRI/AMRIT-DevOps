@@ -113,6 +113,9 @@ docker exec mongodb-container mongosh -u root -p1234 --eval "db.adminCommand({li
 cd ../..
 git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
+cp src/main/environment/common_example.properties src/main/environment/common_local.properties
+mvn clean install -DENV_VAR=local
+mvn spring-boot:run -DENV_VAR=local
 ```
 
 **Configure local environment:**
@@ -167,28 +170,9 @@ For detailed troubleshooting, see [AMRIT-DB README](https://github.com/PSMRI/AMR
 
 ### 5. Load Master Data (Optional)
 
-**Download data package:**
-- Download `Amrit_MastersData.zip` from [AMRIT documentation](https://piramal-swasthya.gitbook.io/amrit/data-management/database-schema)
-- Extract to a local directory (e.g., `C:\AmritData` or `/home/user/AmritData`)
-
 **Return to amrit-local-setup directory:**
 ```bash
 cd ../AMRIT-DevOps/amrit-local-setup
-```
-
-**Configure data loader script:**
-
-Edit line 10 in the appropriate script:
-- `loaddummydata.sh` for Linux/macOS
-- `loaddummydata.bat` for Windows
-
-Set `DATA_PATH` to your extracted data directory:
-```bash
-# Linux/macOS
-DATA_PATH="/home/user/AmritData"
-
-# Windows
-set DATA_PATH=C:\AmritData
 ```
 
 **Execute data load:**
