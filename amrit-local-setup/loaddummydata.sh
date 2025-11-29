@@ -6,7 +6,12 @@ PORT="3306"
 USER="root"
 PASSWORD="1234"
 # Path to the extracted SQL files
-SQL_DIR=<PATH to the extracted files directory>
+
+# download and extract the SQL files from the given url https://1865391384-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FYfDZFIsUuulWkRHaq4c1%2Fuploads%2F1WdSAf0fQBeJOea70EXE%2FAmritMasterData.zip?alt=media&token=18e0b6d6-487c-4c0c-967a-02cdd94d61ad
+wget -O AmritMasterData.zip "https://1865391384-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FYfDZFIsUuulWkRHaq4c1%2Fuploads%2F1WdSAf0fQBeJOea70EXE%2FAmritMasterData.zip?alt=media&token=18e0b6d6-487c-4c0c-967a-02cdd94d61ad"
+unzip AmritMasterData.zip -d AmritMasterDataFiles
+rm AmritMasterData.zip
+SQL_DIR="AmritMasterDataFiles/AmritMasterData"
 
 # Files and their respective databases
 FILES="AmritMasterData.sql m_beneficiaryregidmapping_dump_1097.sql m_beneficiaryregidmapping_dump.sql"
@@ -22,12 +27,21 @@ for FILE in $FILES_ARRAY; do
     DATABASE=$(echo $DATABASES_ARRAY | cut -d ' ' -f $(($i+1)))  # get corresponding database
     echo "Running $FILE on $DATABASE..."
     
-    mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASSWORD" "$DATABASE" < "$SQL_DIR/$FILE"
+    # Execute SQL and capture output, filtering out duplicate key errors
+    OUTPUT=$(mysql -h "$HOST" -P "$PORT" -u "$USER" -p"$PASSWORD" "$DATABASE" < "$SQL_DIR/$FILE" 2>&1)
+    EXIT_CODE=$?
     
-    if [ $? -eq 0 ]; then
+    # Check if error is only due to duplicate entries (error code 1062)
+    if [ $EXIT_CODE -eq 0 ]; then
         echo "Successfully executed $FILE on $DATABASE."
+    elif echo "$OUTPUT" | grep -q "ERROR 1062"; then
+        echo "Completed $FILE on $DATABASE (duplicate entries skipped)."
     else
-        echo "Error executing $FILE on $DATABASE."
+        echo "Error executing $FILE on $DATABASE: $OUTPUT"
     fi
     i=$(($i+1))  # Increment index for the next database
 done
+
+# Clean up the extracted files
+rm -rf AmritMasterDataFiles
+echo "Cleaned up AmritMasterDataFiles folder."
