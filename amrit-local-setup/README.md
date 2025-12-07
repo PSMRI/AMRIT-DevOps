@@ -8,6 +8,7 @@
 - Maven 3.6+
 - Git version control
 - OpenJDK 17+
+- MySQL Client
 
 ## Architecture Overview
 
@@ -15,7 +16,7 @@ The setup leverages containerization for consistent development environments acr
 
 ## Deployment Steps
 
-First, clone the DevOps repository and navigate to the local setup directory:
+First, clone the DevOps repository, navigate to the local setup directory and initialize the container services:
 
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DevOps.git
@@ -38,9 +39,8 @@ docker-compose up
 
 **Important:** If these services are already running on your host machine, stop the local MySQL, Mongo and Redis instances before proceeding.
 
-**Note:** Before proceeding:
+**Note:** Before proceeding, Verify that the Docker containers are running for mysql, redis and mongo
 
-- Verify that the Docker container is running
 ### 2. Database Schema Management Service Deployment
 
 #### Repository Configuration
@@ -48,34 +48,14 @@ docker-compose up
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
+cp `src/main/environment/common_example.properties` to `src/main/environment/common_local.properties`
+mvn clean install -DENV_VAR=local
 ```
-1. **Setup Local Properties**:  
-   - Copy `common_example.properties` to `common_local.properties`.  
-   - File location: `src/main/environment`  
-
-2. **Create Build Configuration through CLI**:
-      ```
-      mvn clean install -DENV_VAR=local
-     ```
----
-
-## Run Configuration  
-
-1. **Setup Spring Boot through CLI**:
-      ```
-      mvn spring-boot:run -DENV_VAR=local
-     ```
 ---
 
 ### 3. Load Sample Data
 
-#### Data Package Setup
-
-1. Download the Data zip folder (`Amrit_MastersData.zip`) from the [official documentation](https://piramal-swasthya.gitbook.io/amrit/data-management/database-schema)
-2. Extract the archive contents
-3. Update the data path in the appropriate script:
-   - Line 10 in `loaddummydata.sh` (Linux/MacOS)
-   - Line 10 in `loaddummydata.bat` (Windows)
+Run the below script to load sample Data into the database tables created in the previous step
 
 #### Execute Data Load
 
