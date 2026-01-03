@@ -1,6 +1,12 @@
 # AMRIT Local Environment Setup Guide
 
-## System Requirements
+## Overview
+
+AMRIT Local Database Environment Setup activity involves three activities
+
+1) Start the MySQL, MongoDB and Redis databases as Docker Containers 
+2) Create the Database Schema for AMRIT
+3) Load the Database with Sample Data
 
 ### Mandatory Dependencies
 
@@ -10,24 +16,16 @@
 - OpenJDK 17+
 - MySQL Client
 
-## Architecture Overview
-
-The setup leverages containerization for consistent development environments across the team. Core services are orchestrated via Docker, with MySQL, Mongo and Redis instances running in isolated containers.
 
 ## Deployment Steps
 
-First, clone the DevOps repository, navigate to the local setup directory and initialize the container services:
+### 1. Start the Databases
+
+First, run the below commands to clone the DevOps repository, navigate to the local setup directory and initialize the container services:
 
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DevOps.git
 cd AMRIT-DevOps/amrit-local-setup
-```
-
-### 1. Container Orchestration
-
-Initialize the containerized services:
-
-```bash
 docker-compose up
 ```
 
@@ -39,25 +37,25 @@ docker-compose up
 
 **Important:** If these services are already running on your host machine, stop the local MySQL, Mongo and Redis instances before proceeding.
 
-**Note:** Before proceeding, Verify that the Docker containers are running for mysql, redis and mongo
+**Note:** Before proceeding, Verify that the Docker containers are running for MySQL, Mongo and Redis.
 
-### 2. Database Schema Management Service Deployment
+### 2. Create the Database Schema
 
-#### Repository Configuration
+Use the below commands to Run the Database Schema Management Service. This is a Java Service which is used to create the database schema in MySQL Instance
+
 
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
 cp `src/main/environment/common_example.properties` to `src/main/environment/common_local.properties`
 mvn clean install -DENV_VAR=local
+mvn spring-boot:run -DENV_VAR=local
 ```
 ---
 
-### 3. Load Sample Data
+### 3. Load Sample Data in the Database Tables
 
-Run the below script to load sample Data into the database tables created in the previous step
-
-#### Execute Data Load
+Run the below script to load sample Data into the database tables.The data will be loaded and persistently stored in the MySQL instance.
 
 For Linux/Unix systems:
 
@@ -71,10 +69,8 @@ For Windows (PowerShell):
 .\loaddummydata.bat
 ```
 
-The data will be loaded and persistently stored in the containerized MySQL instance.
+## Troubleshooting Tips
 
-## Troubleshooting
-
-- Ensure all ports (3306, 6379, 27017) are available before starting the containers
 - Verify Docker daemon is running before executing docker-compose
-- Check container logs if services fail to start
+- Ensure all ports (3306, 6379, 27017) are available before starting the containers
+- Check the container logs to see if services failed to start
