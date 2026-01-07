@@ -21,7 +21,7 @@ for %%F in (%DATABASES%) do (
         set "DATABASE=%%B"
         echo Running !FILE! on !DATABASE!...
         
-        mysql -h %HOST% -P %PORT% -u %USER% -p%PASSWORD% !DATABASE! < "%SQL_DIR%\!FILE!"
+        mysql -h %HOST% -P %PORT% -u -p !DATABASE! < "%SQL_DIR%\!FILE!"
         
         if !ERRORLEVEL! equ 0 (
             echo Successfully executed !FILE! on !DATABASE!.
