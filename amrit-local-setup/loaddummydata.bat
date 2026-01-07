@@ -8,7 +8,7 @@ set USER=root
 set PASSWORD=1234
 
 :: Path to the extracted SQL files, DO NOT put in quotes
-set SQL_DIR="path\to\extracted\sql\files"
+set SQL_DIR=<PATH to the extracted files directory>
 
 :: Associating files with databases
 set DATABASES="AmritMasterData.sql=db_iemr" "m_beneficiaryregidmapping_dump_1097.sql=db_1097_identity" "m_beneficiaryregidmapping_dump.sql=db_identity"
