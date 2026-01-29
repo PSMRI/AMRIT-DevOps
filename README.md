@@ -1,5 +1,8 @@
 # AMRIT-DevOps
 
+
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-PSMRI%2FAMRIT--DevOps-blue.svg?...)](https://deepwiki.com/PSMRI/AMRIT-DevOps)
+
 DevOps automation and infrastructure configuration repository for the AMRIT (Accessible Medical Records via Integrated Technology) platform. Contains Docker orchestration, database management tools, monitoring setup, and deployment automation scripts.
 
 ## Overview
