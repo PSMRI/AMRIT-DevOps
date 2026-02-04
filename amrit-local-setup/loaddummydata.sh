@@ -7,11 +7,18 @@ USER="root"
 PASSWORD="1234"
 # Path to the extracted SQL files
 
-# download and extract the SQL files from the given url https://1865391384-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FYfDZFIsUuulWkRHaq4c1%2Fuploads%2F1WdSAf0fQBeJOea70EXE%2FAmritMasterData.zip?alt=media&token=18e0b6d6-487c-4c0c-967a-02cdd94d61ad
+# download and extract the SQL files from the gitbook URL
+
 wget -O AmritMasterData.zip "https://1865391384-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FYfDZFIsUuulWkRHaq4c1%2Fuploads%2F1WdSAf0fQBeJOea70EXE%2FAmritMasterData.zip?alt=media&token=18e0b6d6-487c-4c0c-967a-02cdd94d61ad"
-unzip AmritMasterData.zip -d AmritMasterDataFiles
-rm AmritMasterData.zip
-SQL_DIR="AmritMasterDataFiles/AmritMasterData"
+# If wget fails, exit the script with an error message
+if [ $? -ne 0 ]; then
+    echo "Failed to download AmritMasterData.zip"
+    exit 1
+fi
+
+unzip AmritMasterData.zip -d AmritMasterData
+
+SQL_DIR=AmritMasterData/AmritMasterData
 
 # Files and their respective databases
 FILES="AmritMasterData.sql m_beneficiaryregidmapping_dump_1097.sql m_beneficiaryregidmapping_dump.sql"
@@ -42,6 +49,7 @@ for FILE in $FILES_ARRAY; do
     i=$(($i+1))  # Increment index for the next database
 done
 
-# Clean up the extracted files
-rm -rf AmritMasterDataFiles
-echo "Cleaned up AmritMasterDataFiles folder."
+# Clean up the temporary files
+rm AmritMasterData.zip
+rm -rf AmritMasterData
+echo "Cleaned up AmritMasterData folder."
