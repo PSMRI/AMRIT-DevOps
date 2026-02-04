@@ -2,7 +2,7 @@
 
 ## Overview
 
-AMRIT Local Database Environment Setup activity involves three activities
+AMRIT Local Database Environment Setup involves three activities
 
 1) Start the MySQL, MongoDB and Redis databases as Docker Containers 
 2) Create the Database Schema for AMRIT
@@ -55,7 +55,7 @@ mvn spring-boot:run -DENV_VAR=local
 
 ### 3. Load Sample Data in the Database Tables
 
-Run the below script to load sample Data into the database tables.The data will be loaded and persistently stored in the MySQL instance.
+Run the below script to load sample Data into the database tables. The data will be loaded and persistently stored in the MySQL instance.
 
 For Linux/Unix systems:
 
