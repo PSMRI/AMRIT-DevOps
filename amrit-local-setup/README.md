@@ -47,7 +47,7 @@ Use the below commands to Run the Database Schema Management Service. This is a 
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DB.git
 cd AMRIT-DB
-cp `src/main/environment/common_example.properties` to `src/main/environment/common_local.properties`
+cp src/main/environment/common_example.properties src/main/environment/common_local.properties
 mvn clean install -DENV_VAR=local
 mvn spring-boot:run -DENV_VAR=local
 ```
