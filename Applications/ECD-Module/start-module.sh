@@ -18,7 +18,7 @@ if [ ! -d "ECD-UI" ]; then
     cp src/environments/environment.local.ts src/environments/environment.ts
 fi
 
-
+# Build and run the common api, ecd api and ecd ui
 gnome-terminal -- bash -c "cd "$AMRIT_HOME"/AMRIT-DevOps/amrit-local-setup;sudo docker-compose up -d"
 
 gnome-terminal -- bash -c "cd "$AMRIT_HOME"/Common-API;mvn clean install -DskipTests=true; mvn spring-boot:run -DENV_VAR=local; exec bash"
