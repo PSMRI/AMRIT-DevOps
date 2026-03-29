@@ -1,46 +1,61 @@
-
 #!/bin/bash
 set -e
 
-# Set AMRIT_HOME robustly to the parent directory of this script
-AMRIT_HOME="$(dirname $(dirname $(realpath $0)))"
-cd "$AMRIT_HOME"
-echo "[INFO] AMRIT_HOME set to $AMRIT_HOME"
+SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+DEVOPS_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
+WORKSPACE="$(dirname "$DEVOPS_DIR")"
 
-# Start common services
-echo "[INFO] Starting common services..."
-start-common.sh
+# shellcheck source=../Common-Platform/lib.sh
+source "$DEVOPS_DIR/Applications/Common-Platform/lib.sh"
 
-# Clone ECD-API if not present
-if [ ! -d "$AMRIT_HOME/ECD-API" ]; then
-    echo "[INFO] Cloning ECD-API repository..."
-    git clone https://github.com/PSMRI/ECD-API.git "$AMRIT_HOME/ECD-API"
-    cd "$AMRIT_HOME/ECD-API"
-    cp src/main/environment/ecd_example.properties src/main/environment/ecd_local.properties
-    echo "[INFO] ECD-API environment files copied."
-    cd "$AMRIT_HOME"
-else
-    echo "[INFO] ECD-API already exists."
-fi
+# ── Setup functions ───────────────────────────────────────────────────────────
 
-# Clone ECD-UI if not present
-if [ ! -d "$AMRIT_HOME/ECD-UI" ]; then
-    echo "[INFO] Cloning ECD-UI repository..."
-    git clone https://github.com/PSMRI/ECD-UI.git "$AMRIT_HOME/ECD-UI"
-    cd "$AMRIT_HOME/ECD-UI"
-    sudo npm install --legacy-peer-deps
-    git submodule update --init --recursive
-    cp src/environments/environment.local.ts src/environments/environment.ts
-    echo "[INFO] ECD-UI dependencies installed and environment files copied."
-    cd "$AMRIT_HOME"
-else
-    echo "[INFO] ECD-UI already exists."
-fi
+setup_common_platform() {
+    "$DEVOPS_DIR/Applications/Common-Platform/start.sh"
+}
 
-# Start ECD-API service
-echo "[INFO] Starting ECD-API service..."
-gnome-terminal -- bash -c "cd \"$AMRIT_HOME/ECD-API\";mvn clean install -DskipTests=true; mvn spring-boot:run -DENV_VAR=local; exec bash"
+setup_ecd_api() {
+    setup_api "ECD-API" \
+        "https://github.com/PSMRI/ECD-API.git" \
+        "src/main/environment/ecd_example.properties" \
+        "src/main/environment/ecd_local.properties"
+}
 
-# Start ECD-UI service
-echo "[INFO] Starting ECD-UI service..."
-gnome-terminal -- bash -c "cd \"$AMRIT_HOME/ECD-UI\";ng serve; exec bash"
+setup_ecd_ui() {
+    setup_ui "ECD-UI" \
+        "https://github.com/PSMRI/ECD-UI.git" \
+        "src/environments/environment.local.ts" \
+        "src/environments/environment.ts"
+}
+
+# ── Service Startup ───────────────────────────────────────────────────────────
+
+start_services() {
+    local session="amrit-ecd"
+
+    create_tmux_session "$session" "common-api"
+
+    run_in_tmux "$session" "common-api" \
+        "cd \"$WORKSPACE/Common-API\" && mvn clean install -DskipTests=true && mvn spring-boot:run -DENV_VAR=local"
+
+    run_in_tmux "$session" "ecd-api" \
+        "cd \"$WORKSPACE/ECD-API\" && mvn clean install -DskipTests=true && mvn spring-boot:run -DENV_VAR=local"
+
+    run_in_tmux "$session" "ecd-ui" \
+        "cd \"$WORKSPACE/ECD-UI\" && ng serve"
+
+    echo ""
+    log_info "main" "All services launched in tmux session '$session'."
+    log_info "main" "Attach to view logs:  tmux attach -t $session"
+    log_info "main" "Switch windows:       Ctrl+b, then n / p  or  Ctrl+b, then 0-2"
+    echo ""
+}
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
+run_parallel \
+    setup_common_platform \
+    setup_ecd_api \
+    setup_ecd_ui
+
+start_services
