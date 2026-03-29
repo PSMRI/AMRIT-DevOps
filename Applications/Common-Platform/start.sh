@@ -24,7 +24,6 @@ setup_common_ui() {
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-run_parallel \
-    start_infrastructure \
-    setup_common_api \
-    setup_common_ui
+setup_common_api
+setup_common_ui
+start_infrastructure

@@ -10,10 +10,6 @@ source "$DEVOPS_DIR/Applications/Common-Platform/lib.sh"
 
 # ── Setup functions ───────────────────────────────────────────────────────────
 
-setup_common_platform() {
-    "$DEVOPS_DIR/Applications/Common-Platform/start.sh"
-}
-
 setup_hwc_api() {
     setup_api "HWC-API" \
         "https://github.com/PSMRI/HWC-API.git" \
@@ -53,9 +49,7 @@ start_services() {
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-run_parallel \
-    setup_common_platform \
-    setup_hwc_api \
-    setup_hwc_ui
+setup_hwc_api
+setup_hwc_ui
 
 start_services

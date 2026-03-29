@@ -157,25 +157,3 @@ run_in_tmux() {
     log_info "tmux" "Started '$window'."
 }
 
-# ── Parallel Job Runner ───────────────────────────────────────────────────────
-
-# Runs all remaining arguments as background jobs and waits for all to finish.
-# Exits with error if any job fails.
-# Usage: run_parallel <job_function_1> <job_function_2> ...
-run_parallel() {
-    local pids=()
-    for fn in "$@"; do
-        "$fn" &
-        pids+=($!)
-    done
-
-    local failed=0
-    for pid in "${pids[@]}"; do
-        wait "$pid" || failed=1
-    done
-
-    if [ "$failed" -eq 1 ]; then
-        log_error "main" "One or more setup steps failed. Resolve the errors above before starting services."
-        exit 1
-    fi
-}
