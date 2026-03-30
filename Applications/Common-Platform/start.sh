@@ -9,6 +9,19 @@ COMPOSE_DIR="$DEVOPS_DIR/amrit-local-setup"
 # shellcheck source=./lib.sh
 source "$DEVOPS_DIR/Applications/Common-Platform/lib.sh"
 
+# ── Reset flags ───────────────────────────────────────────────────────────────
+
+for arg in "$@"; do
+    case "$arg" in
+        --reset-db)   rm -f "$AMRIT_SETUP_DIR/.db_migrated";  log_info "main" "DB migration sentinel cleared." ;;
+        --reset-data) rm -f "$AMRIT_SETUP_DIR/.data_loaded";  log_info "main" "Master data sentinel cleared." ;;
+        --reset-all)
+            rm -f "$AMRIT_SETUP_DIR/.db_migrated" "$AMRIT_SETUP_DIR/.data_loaded"
+            log_info "main" "All sentinels cleared."
+            ;;
+    esac
+done
+
 # ── Setup functions ───────────────────────────────────────────────────────────
 
 setup_common_api() {
@@ -27,3 +40,5 @@ setup_common_ui() {
 setup_common_api
 setup_common_ui
 start_infrastructure
+run_db_migrations || true
+load_master_data

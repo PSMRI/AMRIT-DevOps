@@ -49,6 +49,8 @@ start_services() {
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+"$DEVOPS_DIR/Applications/Common-Platform/start.sh" "$@"
+
 setup_hwc_api
 setup_hwc_ui
 

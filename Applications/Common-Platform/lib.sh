@@ -8,6 +8,99 @@ log_info()  { echo -e "${GREEN}[INFO]${NC}  [${1}] ${2}"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC}  [${1}] ${2}"; }
 log_error() { echo -e "${RED}[ERROR]${NC} [${1}] ${2}"; }
 
+AMRIT_SETUP_DIR="${AMRIT_SETUP_DIR:-$HOME/.amrit}"
+
+# ── One-time setup ───────────────────────────────────────────────────────────
+
+# Clones AMRIT-DB and runs Flyway migrations via Maven.
+# Skipped if sentinel file exists. Non-fatal on failure.
+# Usage: run_db_migrations
+# Requires: $WORKSPACE, $AMRIT_SETUP_DIR
+run_db_migrations() {
+    local sentinel="$AMRIT_SETUP_DIR/.db_migrated"
+
+    if [ -f "$sentinel" ]; then
+        log_info "db-migration" "Already applied, skipping. (Remove $sentinel to re-run)"
+        return 0
+    fi
+
+    mkdir -p "$AMRIT_SETUP_DIR"
+
+    setup_api "AMRIT-DB" "https://github.com/PSMRI/AMRIT-DB.git" \
+        "src/main/environment/common_example.properties" \
+        "src/main/environment/common_local.properties"
+
+    local db_dir="$WORKSPACE/AMRIT-DB"
+
+    log_info "db-migration" "Running Flyway migrations (this may take a few minutes)..."
+
+    local log_file
+    log_file=$(mktemp)
+
+    mvn -f "$db_dir/pom.xml" spring-boot:run -DENV_VAR=local 2>&1 | tee "$log_file" &
+    local mvn_pid=$!
+
+    local timeout=300
+    local elapsed=0
+    local interval=5
+    while kill -0 "$mvn_pid" 2>/dev/null; do
+        if grep -q "SUCCESS\|Flyway migration completed successfully" "$log_file" 2>/dev/null; then
+            kill "$mvn_pid" 2>/dev/null
+            wait "$mvn_pid" 2>/dev/null
+            break
+        fi
+        if grep -q "Error during migration:\|Failed to repair and migrate\|BUILD FAILURE\|APPLICATION FAILED TO START" "$log_file" 2>/dev/null; then
+            kill "$mvn_pid" 2>/dev/null
+            wait "$mvn_pid" 2>/dev/null
+            rm -f "$log_file"
+            log_warn "db-migration" "Migration failed — continuing setup."
+            return 1
+        fi
+        if [ "$elapsed" -ge "$timeout" ]; then
+            kill "$mvn_pid" 2>/dev/null
+            wait "$mvn_pid" 2>/dev/null
+            rm -f "$log_file"
+            log_warn "db-migration" "Migration timed out after ${timeout}s — continuing setup."
+            return 1
+        fi
+        sleep "$interval"
+        elapsed=$((elapsed + interval))
+    done
+
+    rm -f "$log_file"
+    touch "$sentinel"
+    log_info "db-migration" "Migrations applied successfully."
+}
+
+# Loads master/dummy data by delegating to loaddummydata.sh.
+# Skipped if sentinel file exists. Non-fatal on failure.
+# Usage: load_master_data
+# Requires: $DEVOPS_DIR, $AMRIT_SETUP_DIR
+load_master_data() {
+    local sentinel="$AMRIT_SETUP_DIR/.data_loaded"
+
+    if [ -f "$sentinel" ]; then
+        log_info "master-data" "Already loaded, skipping. (Remove $sentinel to re-run)"
+        return 0
+    fi
+
+    local script="$DEVOPS_DIR/amrit-local-setup/loaddummydata.sh"
+
+    if [ ! -f "$script" ]; then
+        log_warn "master-data" "loaddummydata.sh not found at $script — skipping."
+        return 0
+    fi
+
+    log_info "master-data" "Loading master data..."
+
+    if bash "$script"; then
+        touch "$sentinel"
+        log_info "master-data" "Master data loaded successfully."
+    else
+        log_warn "master-data" "Master data loading encountered errors — continuing setup."
+    fi
+}
+
 # ── Infrastructure ────────────────────────────────────────────────────────────
 
 # Usage: start_infrastructure

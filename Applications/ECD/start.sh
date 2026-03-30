@@ -29,10 +29,7 @@ setup_ecd_ui() {
 start_services() {
     local session="amrit-ecd"
 
-    create_tmux_session "$session" "docker"
-
-    run_in_tmux "$session" "docker" \
-        "$DEVOPS_DIR/Applications/Common-Platform/start.sh"
+    create_tmux_session "$session" "common-api"
 
     run_in_tmux "$session" "common-api" \
         "cd \"$WORKSPACE/Common-API\" && mvn clean install -DskipTests=true && mvn spring-boot:run -DENV_VAR=local"
@@ -51,6 +48,8 @@ start_services() {
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────
+
+"$DEVOPS_DIR/Applications/Common-Platform/start.sh" "$@"
 
 setup_ecd_api
 setup_ecd_ui
