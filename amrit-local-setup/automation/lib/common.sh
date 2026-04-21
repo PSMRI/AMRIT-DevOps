@@ -80,15 +80,13 @@ resolve_workspace() {
 # Called at wizard entry. Exits non-zero if any check fails.
 preflight() {
     local missing=()
-    local required=(docker java mvn node tmux git lsof)
+    # curl: wait_for_infrastructure (Elasticsearch health)
+    # npm:  setup_ui (npm install)
+    # ng:   start_ui_in_tmux (ng serve)
+    local required=(docker java mvn node npm ng tmux git lsof curl)
     for tool in "${required[@]}"; do
         command -v "$tool" &>/dev/null || missing+=("$tool")
     done
-
-    # ng is optional — some UIs use `npm start` wrappers instead.
-    if ! command -v ng &>/dev/null; then
-        log_warn "preflight" "Angular CLI (ng) not on PATH — UI windows may fail. Install with: npm install -g @angular/cli"
-    fi
 
     if [ ${#missing[@]} -gt 0 ]; then
         log_error "preflight" "Missing required tools: ${missing[*]}"
@@ -193,8 +191,10 @@ run_db_migrations() {
     local timeout=300
     local elapsed=0
     local interval=5
+    local observed_success=0
     while kill -0 "$mvn_pid" 2>/dev/null; do
         if grep -q "SUCCESS\|Flyway migration completed successfully" "$log_file" 2>/dev/null; then
+            observed_success=1
             kill "$mvn_pid" 2>/dev/null
             wait "$mvn_pid" 2>/dev/null
             break
@@ -217,7 +217,21 @@ run_db_migrations() {
         elapsed=$((elapsed + interval))
     done
 
+    # Maven exited on its own (fast exit, build failure, etc.). Re-scan the log
+    # one last time before deciding — otherwise we'd sentinel on an uncertain exit.
+    if [ "$observed_success" -eq 0 ]; then
+        if grep -q "SUCCESS\|Flyway migration completed successfully" "$log_file" 2>/dev/null; then
+            observed_success=1
+        fi
+    fi
+
     rm -f "$log_file"
+
+    if [ "$observed_success" -ne 1 ]; then
+        log_warn "db-migration" "Maven exited without observing a success marker — not writing sentinel. Re-run or check MySQL/AMRIT-DB."
+        return 1
+    fi
+
     touch "$sentinel"
     log_info "db-migration" "Migrations applied successfully."
 }
@@ -330,8 +344,8 @@ setup_api() {
 
     if [ ! -f "$dir/$local_props" ]; then
         if [ ! -f "$dir/$example_props" ]; then
-            log_warn "$name" "Example properties file '$example_props' not found in repo — skipping copy."
-            return 0
+            log_error "$name" "Example properties file '$example_props' not found in repo — manifest drift; update lib/services.conf or the repo's templates."
+            return 1
         fi
         cp "$dir/$example_props" "$dir/$local_props"
         log_info "$name" "Created $local_props from example. Edit it with your local connection details before starting."
@@ -358,8 +372,8 @@ setup_ui() {
 
     if [ ! -f "$dir/$local_env" ]; then
         if [ ! -f "$dir/$example_env" ]; then
-            log_warn "$name" "Example env file '$example_env' not found — skipping copy."
-            return 0
+            log_error "$name" "Example env file '$example_env' not found — manifest drift; update lib/services.conf or the repo's templates."
+            return 1
         fi
         cp "$dir/$example_env" "$dir/$local_env"
         log_info "$name" "Created $local_env from example. Edit it with your local API endpoints before starting."

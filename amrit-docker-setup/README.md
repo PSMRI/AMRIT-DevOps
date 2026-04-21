@@ -372,7 +372,7 @@ cd UI/<app> && npm install && npm run build                     # rebuild one UI
 
 ## Directory structure
 
-```
+```text
 amrit-docker-setup/
 ├── API/                            # cloned API repos (gitignored)
 ├── UI/                             # cloned UI repos + built dist bundles (gitignored)

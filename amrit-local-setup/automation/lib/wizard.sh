@@ -46,7 +46,7 @@ _wizard_choose_action() {
     gum choose --height 8 --header "What do you want to do?" \
         "Run a single product (quick demo)" \
         "Run multiple products together" \
-        "Run the full AMRIT platform (all 14 APIs + 10 UIs)" \
+        "Run the full AMRIT platform (all APIs + all UIs)" \
         "Bring up infrastructure only (for IDE debugging)" \
         "Reset DB + master data" \
         "Quit"
@@ -110,8 +110,24 @@ _wizard_summary_and_confirm() {
     local full_flag="$2"
 
     local api_list ui_list
-    api_list=$(resolve_apis $products | tr '\n' ' ')
-    ui_list=$(resolve_uis $products | tr '\n' ' ')
+    if [ -n "$full_flag" ]; then
+        # Full platform mirrors engine.sh's direct-registry expansion —
+        # resolve_apis("all") would fail since "all" is not a product key.
+        api_list="Common-API Identity-API BeneficiaryID-Generation-API"
+        local api ui
+        for api in "${!API_REPO[@]}"; do
+            case "$api" in
+                Common-API|Identity-API|BeneficiaryID-Generation-API) ;;
+                *) api_list+=" $api" ;;
+            esac
+        done
+        ui_list=""
+        for ui in "${!UI_REPO[@]}"; do ui_list+="$ui "; done
+        ui_list="${ui_list% }"
+    else
+        api_list=$(resolve_apis $products | tr '\n' ' ')
+        ui_list=$(resolve_uis $products | tr '\n' ' ')
+    fi
 
     local skip_infra_str="run"; [ -n "$OPT_SKIP_INFRA" ] && skip_infra_str="skip"
     local skip_db_str="run";    [ -n "$OPT_SKIP_DB" ]    && skip_db_str="skip"

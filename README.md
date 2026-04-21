@@ -18,7 +18,7 @@ All three share the same infrastructure services on the same ports — **don't r
 
 Docker Engine 20.10+ with Compose v2 · Java 17+ · Maven 3.6+ · Node 16+ · Angular CLI · tmux · Git · MySQL 8.0 CLI on PATH · wget, unzip · **bash 4+** (macOS: `brew install bash`) · **gum** for the automation wizard (`brew install gum`, or see [gum install](https://github.com/charmbracelet/gum#installation)).
 
-16 GB RAM recommended (24 GB+ for `--all` full-platform mode) · ports 3306, 6379, 27017, 9200 (+ 80 for full stack, or 8081–8095 / 4201–4211 for automation) must be free.
+16 GB RAM recommended (24 GB+ for `--all` full-platform mode) · ports 3306, 6379, 27017, 9200, 9300, 5601 (+ 80 for full stack, or 8081–8095 / 4201–4211 for automation) must be free.
 
 Preflight:
 ```bash
@@ -69,7 +69,7 @@ All paths use the same schemas (`db_iemr`, `db_identity`, `db_reporting`, `db_10
 
 ## Layout
 
-```
+```text
 AMRIT-DevOps/
 ├── amrit-local-setup/
 │   ├── infra/           # Shared Docker Compose (MySQL, Redis, Mongo, Elasticsearch)

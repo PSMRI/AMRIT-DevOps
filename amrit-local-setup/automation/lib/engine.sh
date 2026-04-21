@@ -53,6 +53,14 @@ parse_flags() {
         done
         SELECTED_PRODUCTS="${normalised% }"
     fi
+
+    # Reject the degenerate case where someone passed only skip/force flags
+    # without any action. Bare --reset-* flags are fine (handled by caller).
+    if [ -z "$SELECTED_PRODUCTS" ] && [ ${#RESET_ARGS[@]} -eq 0 ]; then
+        log_error "cli" "No action specified. Select --product=<key>, --products=<k1>,<k2>,…, or --all."
+        print_usage
+        return 1
+    fi
 }
 
 print_usage() {
@@ -63,7 +71,7 @@ Usage:
   bash start.sh                              # interactive wizard (requires gum)
   bash start.sh --product=<key>              # run one product
   bash start.sh --products=<k1>,<k2>,…       # run multiple products together
-  bash start.sh --all                        # run full AMRIT platform (14 APIs + 10 UIs)
+  bash start.sh --all                        # run full AMRIT platform (every API + UI in the registry)
 
 Product keys: ${PRODUCT_ORDER[*]}
 
@@ -156,7 +164,7 @@ run_selection() {
 
     # ── One-time setup ────────────────────────────────────────────────────
     if [ -z "$OPT_SKIP_INFRA" ]; then
-        start_infrastructure
+        start_infrastructure || { log_error "main" "Infrastructure startup failed — aborting."; return 1; }
     else
         log_info "main" "Skipping infra (--skip-infra)."
     fi

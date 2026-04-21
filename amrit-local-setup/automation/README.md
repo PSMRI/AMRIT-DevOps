@@ -22,11 +22,11 @@ Every product implicitly includes the three shared anchors: **Common-API**, **Id
 |---------|------------------------------------|-------------------------------------------------|----------------------------------------|
 | `admin` | User / role / master-data console  | Admin                                           | Admin-UI (`:4205`)                     |
 | `ecd`   | Early Childhood Development        | ECD                                             | ECD-UI (`:4209`)                       |
-| `hwc`   | Health & Wellness Centers          | HWC + Scheduler + Inventory + MMU               | HWC (`:4204`), HWC-Scheduler, HWC-Inventory |
-| `mmu`   | Mobile Medical Unit                | MMU + Scheduler                                 | MMU-UI (`:4202`)                       |
+| `hwc`   | Health & Wellness Centers          | HWC + Scheduler + Inventory + TM + FHIR         | HWC (`:4204`), HWC-Scheduler, HWC-Inventory |
+| `mmu`   | Mobile Medical Unit                | MMU + Scheduler + TM                            | MMU-UI (`:4202`), Inventory-UI         |
 | `tm`    | Telemedicine                       | TM + Scheduler                                  | TM-UI (`:4203`)                        |
 | `hl104` | Helpline 104                       | Helpline104                                     | Helpline104-UI (`:4210`)               |
-| `hl1097`| Helpline 1097                      | Helpline1097 + FHIR + ECD                       | Helpline1097-UI (`:4211`)              |
+| `hl1097`| Helpline 1097                      | Helpline1097                                    | Helpline1097-UI (`:4211`)              |
 | `all`   | Entire platform (14 APIs, 11 UIs)  | every API in the registry, anchors first        | every UI in the registry               |
 
 Admin isn't a runtime dependency of any product API, so pair it explicitly when you need it:
@@ -81,7 +81,7 @@ Everything is manifest-driven. To add `flw`, for example:
 
 1. Extend `lib/products.conf`:
    ```bash
-   PRODUCT_APIS[flw]="Common-API Identity-API FLW-API"
+   PRODUCT_APIS[flw]="Common-API Identity-API BeneficiaryID-Generation-API FLW-API"
    PRODUCT_UIS[flw]=""                               # mobile-only; no web UI
    PRODUCT_DESC[flw]="Field-Level Workers"
    PRODUCT_ORDER+=(flw)
@@ -97,7 +97,7 @@ Edit API keys / external service endpoints in the generated `*_local.properties`
 
 ## Layout
 
-```
+```text
 automation/
 ├── start.sh                       single entry point
 ├── README.md

@@ -20,7 +20,7 @@ fi
 
 set -e
 
-SCRIPT_DIR="$(dirname "$(realpath "$0")")"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 AUTOMATION_DIR="$SCRIPT_DIR"
 LOCAL_SETUP_DIR="$(dirname "$AUTOMATION_DIR")"
 DEVOPS_DIR="$(dirname "$LOCAL_SETUP_DIR")"
@@ -43,22 +43,20 @@ source "$LIB_DIR/engine.sh"
 source "$LIB_DIR/wizard.sh"
 
 # ── Dispatch ─────────────────────────────────────────────────────────────────
-
-preflight || exit 1
+# Parse flags / handle help / print usage BEFORE the toolchain preflight so
+# partially-configured machines can still discover the CLI surface.
 
 if [ $# -gt 0 ]; then
     # Flag mode — orchestrate non-interactively.
     parse_flags "$@" || exit 1
-    resolve_workspace "${OPT_WORKSPACE:-$WORKSPACE}" "auto" || exit 1
-    if [ -z "$SELECTED_PRODUCTS" ] && [ ${#RESET_ARGS[@]} -eq 0 ]; then
-        log_error "cli" "No action specified. See --help."
-        exit 1
-    fi
-    # Allow bare reset (no products) to clear sentinels and exit.
+    # Allow bare reset (no products) to clear sentinels and exit early —
+    # no need to preflight the full toolchain for a sentinel wipe.
     if [ -z "$SELECTED_PRODUCTS" ]; then
         apply_reset_flags "${RESET_ARGS[@]}"
         exit 0
     fi
+    preflight || exit 1
+    resolve_workspace "${OPT_WORKSPACE:-$WORKSPACE}" "auto" || exit 1
     run_selection
     exit $?
 fi
@@ -70,5 +68,6 @@ if [ ! -t 0 ] || [ ! -t 1 ]; then
     exit 1
 fi
 
+preflight || exit 1
 ensure_gum || exit 1
 run_wizard
