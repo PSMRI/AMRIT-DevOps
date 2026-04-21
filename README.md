@@ -1,6 +1,6 @@
 # AMRIT-DevOps
 
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-PSMRI%2FAMRIT--DevOps-blue.svg?...)](https://deepwiki.com/PSMRI/AMRIT-DevOps)
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-PSMRI%2FAMRIT--DevOps-blue.svg)](https://deepwiki.com/PSMRI/AMRIT-DevOps)
 
 Setup and deployment tooling for **AMRIT** (Accessible Medical Records via Integrated Technology) — an open-source healthcare platform. For what AMRIT is, the service map, and system architecture, see the [official docs](https://piramal-swasthya.gitbook.io/amrit/) and in particular the [system architecture overview](https://piramal-swasthya.gitbook.io/amrit/architecture/system-architecture-overview).
 
@@ -16,11 +16,23 @@ All three share the same infrastructure services on the same ports — **don't r
 
 ## Prerequisites
 
-Docker Engine 20.10+ with Compose v2 · Java 17+ · Maven 3.6+ · Node 16+ · Angular CLI · tmux · Git · MySQL 8.0 CLI on PATH · wget, unzip · **bash 4+** (macOS: `brew install bash`) · **gum** for the automation wizard (`brew install gum`, or see [gum install](https://github.com/charmbracelet/gum#installation)).
+**Tools:**
 
-16 GB RAM recommended (24 GB+ for `--all` full-platform mode) · ports 3306, 6379, 27017, 9200, 9300, 5601 (+ 80 for full stack, or 8081–8095 / 4201–4211 for automation) must be free.
+- Docker Engine 20.10+ with Compose v2
+- Java 17+, Maven 3.6+
+- Node 16+, Angular CLI
+- tmux, Git, wget, unzip
+- MySQL 8.0 CLI on PATH
+- **bash 4+** (macOS: `brew install bash`)
+- **gum** for the automation wizard (`brew install gum`, or see [gum install](https://github.com/charmbracelet/gum#installation))
 
-Preflight:
+**Resources:**
+
+- 16 GB RAM recommended (24 GB+ for `--all` full-platform mode)
+- Free ports: `3306`, `6379`, `27017`, `9200`, `9300`, `5601`
+- Plus `80` for full stack, or `8081–8095` / `4201–4211` for automation
+
+**Preflight check:**
 ```bash
 docker ps && docker compose version && java -version && mvn -v && node -v && mysql --version && tmux -V && bash --version | head -1
 ```
@@ -54,7 +66,14 @@ Bring up infra only, then run APIs / UIs on your host for IDE debugging:
 cd amrit-local-setup/infra && docker compose up -d
 ```
 
-Defaults: MySQL `root/1234` @ 3306 · Redis @ 6379 · MongoDB `root/1234` @ 27017 · Elasticsearch `elastic/piramalES` @ 9200.
+Default credentials and ports:
+
+| Service | Credentials | Port |
+|---|---|---|
+| MySQL | `root` / `1234` | `3306` |
+| Redis | — | `6379` |
+| MongoDB | `root` / `1234` | `27017` |
+| Elasticsearch | `elastic` / `piramalES` | `9200` |
 
 Then follow the [AMRIT-DB](https://github.com/PSMRI/AMRIT-DB) README to run Flyway schema migrations, and clone the API/UI repos you need (e.g. `Common-API`, `ECD-UI`) from [PSMRI](https://github.com/PSMRI) — each has its own setup instructions.
 
