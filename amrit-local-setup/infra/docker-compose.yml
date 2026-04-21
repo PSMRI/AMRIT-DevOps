@@ -1,4 +1,4 @@
-
+name: amrit-local-setup
 
 services:
   # MySQL Database service

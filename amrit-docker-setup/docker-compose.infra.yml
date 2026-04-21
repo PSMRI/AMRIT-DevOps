@@ -1,3 +1,7 @@
+# Server/staging infrastructure — env-driven passwords, hardened healthchecks.
+# The dev-focused sibling is ../amrit-local-setup/infra/docker-compose.yml
+# (hardcoded dev defaults, Elasticsearch + Kibana). Keep them in sync when
+# changing MySQL/Redis/Mongo shape.
 version: '3.9'
 
 services:
