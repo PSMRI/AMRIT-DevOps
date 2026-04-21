@@ -17,6 +17,8 @@ parse_flags() {
     OPT_SKIP_DB=""
     OPT_SKIP_DATA=""
     OPT_FORCE=""
+    OPT_WORKSPACE=""
+    OPT_ATTACH=""
     RESET_ARGS=()
 
     for arg in "$@"; do
@@ -24,10 +26,13 @@ parse_flags() {
             --all)                SELECTED_PRODUCTS="all" ;;
             --product=*)          SELECTED_PRODUCTS="${arg#*=}" ;;
             --products=*)         SELECTED_PRODUCTS="$(echo "${arg#*=}" | tr ',' ' ')" ;;
+            --workspace=*)        OPT_WORKSPACE="${arg#*=}" ;;
             --skip-infra)         OPT_SKIP_INFRA=1 ;;
             --skip-db)            OPT_SKIP_DB=1 ;;
             --skip-data)          OPT_SKIP_DATA=1 ;;
             --force)              OPT_FORCE=1 ;;
+            --attach)             OPT_ATTACH=1 ;;
+            --no-attach)          OPT_ATTACH=0 ;;
             --reset-db|--reset-data|--reset-all) RESET_ARGS+=("$arg") ;;
             -h|--help)            print_usage; return 1 ;;
             *)                    log_error "cli" "Unknown flag: $arg"; print_usage; return 1 ;;
@@ -63,6 +68,8 @@ Usage:
 Product keys: ${PRODUCT_ORDER[*]}
 
 Options:
+  --workspace=<path>       directory to clone AMRIT repos into
+                           (default: parent of AMRIT-DevOps; created if missing)
   --skip-infra             skip 'docker compose up' of MySQL/Redis/Mongo/ES
   --skip-db                skip Flyway migrations
   --skip-data              skip master-data load
@@ -70,6 +77,8 @@ Options:
   --reset-data             clear master-data sentinel, re-run data load
   --reset-all              clear both sentinels
   --force                  bypass memory / port guardrails for --all
+  --attach                 attach to the tmux session on completion (no prompt)
+  --no-attach              never attach, never prompt (for CI / nohup)
 
 Examples:
   bash start.sh --product=ecd
@@ -185,6 +194,21 @@ run_selection() {
     log_info "main" "All services launched in tmux session '$session'."
     log_info "main" "Attach to view logs:  tmux attach -t $session"
     log_info "main" "Switch windows:       Ctrl+b n / p   or   Ctrl+b <number>"
+    log_info "main" "Detach (keep running): Ctrl+b d"
+    log_info "main" "Stop everything:      tmux kill-session -t $session"
     print_endpoints "$api_list" "$ui_list"
     log_info "main" "First Maven build per API takes several minutes. Be patient."
+
+    # ── Auto-attach offer ────────────────────────────────────────────────
+    # Only prompt when a gum-capable TTY is available (wizard path). Flag
+    # mode with --attach forces attach; --no-attach suppresses the prompt.
+    if [ "$OPT_ATTACH" = "1" ]; then
+        exec tmux attach -t "$session"
+    elif [ "$OPT_ATTACH" = "0" ]; then
+        return 0
+    elif [ -t 0 ] && [ -t 1 ] && command -v gum &>/dev/null; then
+        if gum confirm "Attach to tmux session '$session' now?"; then
+            exec tmux attach -t "$session"
+        fi
+    fi
 }

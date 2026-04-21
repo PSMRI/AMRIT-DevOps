@@ -49,6 +49,7 @@ preflight || exit 1
 if [ $# -gt 0 ]; then
     # Flag mode — orchestrate non-interactively.
     parse_flags "$@" || exit 1
+    resolve_workspace "${OPT_WORKSPACE:-$WORKSPACE}" "auto" || exit 1
     if [ -z "$SELECTED_PRODUCTS" ] && [ ${#RESET_ARGS[@]} -eq 0 ]; then
         log_error "cli" "No action specified. See --help."
         exit 1

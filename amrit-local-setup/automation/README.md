@@ -20,6 +20,7 @@ Every product implicitly includes the three shared anchors: **Common-API**, **Id
 
 | Key     | Description                        | Product-specific APIs (on top of anchors)      | UIs launched                           |
 |---------|------------------------------------|-------------------------------------------------|----------------------------------------|
+| `admin` | User / role / master-data console  | Admin                                           | Admin-UI (`:4205`)                     |
 | `ecd`   | Early Childhood Development        | ECD                                             | ECD-UI (`:4209`)                       |
 | `hwc`   | Health & Wellness Centers          | HWC + Scheduler + Inventory + MMU               | HWC (`:4204`), HWC-Scheduler, HWC-Inventory |
 | `mmu`   | Mobile Medical Unit                | MMU + Scheduler                                 | MMU-UI (`:4202`)                       |
@@ -27,6 +28,15 @@ Every product implicitly includes the three shared anchors: **Common-API**, **Id
 | `hl104` | Helpline 104                       | Helpline104                                     | Helpline104-UI (`:4210`)               |
 | `hl1097`| Helpline 1097                      | Helpline1097 + FHIR + ECD                       | Helpline1097-UI (`:4211`)              |
 | `all`   | Entire platform (14 APIs, 11 UIs)  | every API in the registry, anchors first        | every UI in the registry               |
+
+Admin isn't a runtime dependency of any product API, so pair it explicitly when you need it:
+```bash
+bash start.sh --products=ecd,admin
+```
+
+## Master data (dummy data zip)
+
+When the "Load master data" step runs, [`../infra/loaddummydata.sh`](../infra/loaddummydata.sh) downloads the shared `AmritMasterData.zip` from GitBook, unzips it, and restores three SQL dumps into `db_iemr`, `db_1097_identity`, and `db_identity`. Re-running is idempotent at the script level (duplicate-key errors are filtered) and sentinel-guarded at the wizard level (`~/.amrit/.data_loaded`). Force a re-load with `--reset-data` or the wizard's reset option.
 
 API ports follow `8081-8095`; UI ports `4201-4211`. Common-API is `:8083`, Identity-API is `:8094`.
 
@@ -38,7 +48,12 @@ bash start.sh --products=ecd,hwc --skip-db --skip-data
 bash start.sh --all --force                     # 24 GB RAM check; --force bypasses
 bash start.sh --product=ecd --reset-all         # re-run DB migrations + data load
 bash start.sh --reset-db                        # clear sentinel and exit
+bash start.sh --product=ecd --workspace=~/dev/amrit   # clone repos into a custom dir
 ```
+
+## Workspace
+
+Every AMRIT API and UI repo is cloned as a sibling of your chosen workspace directory. By default that's the parent of `AMRIT-DevOps` (so if this repo lives at `~/Dev/PSMRI/AMRIT-DevOps`, clones land in `~/Dev/PSMRI/`). Override with `--workspace=<path>` or pick one in the wizard's first prompt. The path is created on the fly if it doesn't exist, and validated to be writable and outside `AMRIT-DevOps` itself.
 
 Non-interactive stdin (CI) without flags fails fast with usage help — no silent defaults.
 

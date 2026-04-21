@@ -14,6 +14,66 @@ log_error() { echo -e "${RED}[ERROR]${NC} [${1}] ${2}"; }
 
 AMRIT_SETUP_DIR="${AMRIT_SETUP_DIR:-$HOME/.amrit}"
 
+# ── Workspace resolution ─────────────────────────────────────────────────────
+
+# Normalises and validates a candidate workspace path. Creates the directory
+# if it doesn't exist (with user confirmation when in TTY mode and $2 is
+# "interactive"). Sets WORKSPACE to the absolute, resolved path on success.
+# Usage: resolve_workspace <path> [interactive|auto]
+resolve_workspace() {
+    local raw="$1"
+    local mode="${2:-auto}"
+
+    if [ -z "$raw" ]; then
+        log_error "workspace" "No workspace path provided."
+        return 1
+    fi
+
+    # Expand ~ and resolve to absolute form without requiring the dir to exist.
+    raw="${raw/#\~/$HOME}"
+    local abs
+    if [ -d "$raw" ]; then
+        abs=$(cd "$raw" && pwd -P)
+    else
+        local parent="$(dirname "$raw")"
+        local base="$(basename "$raw")"
+        if [ ! -d "$parent" ]; then
+            log_error "workspace" "Parent directory does not exist: $parent"
+            return 1
+        fi
+        abs="$(cd "$parent" && pwd -P)/$base"
+    fi
+
+    if [ ! -d "$abs" ]; then
+        if [ "$mode" = "interactive" ] && command -v gum &>/dev/null; then
+            if ! gum confirm "Create new workspace at $abs?"; then
+                log_error "workspace" "User declined to create $abs."
+                return 1
+            fi
+        fi
+        mkdir -p "$abs" || { log_error "workspace" "Failed to create $abs."; return 1; }
+        log_info "workspace" "Created $abs."
+    fi
+
+    if [ ! -w "$abs" ]; then
+        log_error "workspace" "Workspace is not writable: $abs"
+        return 1
+    fi
+
+    # Sanity: disallow choosing AMRIT-DevOps itself or anything inside it as
+    # the workspace — sibling clones would land in confusing places.
+    case "$abs" in
+        "$DEVOPS_DIR"|"$DEVOPS_DIR"/*)
+            log_error "workspace" "Workspace ($abs) must be outside AMRIT-DevOps ($DEVOPS_DIR)."
+            return 1
+            ;;
+    esac
+
+    WORKSPACE="$abs"
+    export WORKSPACE
+    log_info "workspace" "Using workspace: $WORKSPACE"
+}
+
 # ── Preflight ────────────────────────────────────────────────────────────────
 
 # Verifies required CLI tools are on PATH and Docker is running.
@@ -38,11 +98,6 @@ preflight() {
 
     if ! docker ps &>/dev/null; then
         log_error "preflight" "Docker daemon is not running. Start Docker Desktop and retry."
-        return 1
-    fi
-
-    if [ ! -w "$WORKSPACE" ]; then
-        log_error "preflight" "WORKSPACE ($WORKSPACE) is not writable."
         return 1
     fi
 

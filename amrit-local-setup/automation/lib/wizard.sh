@@ -17,6 +17,26 @@ _product_key_from_label() { echo "$1" | awk '{print $1}'; }
 
 # ── Wizard phases ────────────────────────────────────────────────────────────
 
+# Prompts for a workspace directory, prefilling the current WORKSPACE default.
+# Validates and creates the chosen path. Stays in a loop until a usable path
+# is confirmed or the user aborts.
+_wizard_choose_workspace() {
+    local default="$WORKSPACE"
+    local input
+    while :; do
+        input=$(gum input \
+            --header="Where should AMRIT repos (APIs, UIs) be cloned?" \
+            --placeholder="$default" \
+            --value="$default" \
+            --width=80) || return 1
+        [ -z "$input" ] && input="$default"
+        if resolve_workspace "$input" "interactive"; then
+            return 0
+        fi
+        gum confirm "Try a different path?" || return 1
+    done
+}
+
 _wizard_choose_action() {
     # Banner goes to the terminal (stderr) so it doesn't contaminate the
     # captured stdout from gum choose.
@@ -116,6 +136,8 @@ Master data: $skip_data_str"
 # Drives the entire wizard flow. Sets SELECTED_PRODUCTS / OPT_* based on
 # user input, then calls run_selection from engine.sh.
 run_wizard() {
+    _wizard_choose_workspace || return 1
+
     local action
     action=$(_wizard_choose_action) || return 1
 
