@@ -1,643 +1,127 @@
-# AMRIT Docker Setup
+# AMRIT — Full Docker stack
 
-Production-ready Docker Compose orchestration for deploying the complete AMRIT platform with all microservices, databases, and web interfaces.
+Production-like Compose deployment of the complete AMRIT platform on a single host — all 14 APIs, 10 UIs, and an NGINX reverse proxy. Best for staging servers, performance testing, and full-platform demos.
 
-## Architecture
+Start here → [root README](../README.md). For architecture and the service map, see the [system architecture overview](https://piramal-swasthya.gitbook.io/amrit/architecture/system-architecture-overview).
 
-The deployment consists of two Docker Compose stacks:
-
-**Infrastructure Layer** (`docker-compose.infra.yml`)
-- MySQL 8.0 database server with custom configuration
-- Redis 7.2.4 cache server with persistence
-- MongoDB 6.0 document store with authentication
-
-**Application Layer** (`docker-compose.yml`)
-- 14 Spring Boot microservices (Admin, Common, HWC, MMU, TM, Scheduler, Inventory, ECD, FLW, FHIR, Identity, Helpline104, Helpline1097, BeneficiaryID)
-- 10 Angular UI applications served as static assets
-- NGINX reverse proxy with caching and load balancing
-
-All API services communicate through the `app-network` Docker network. NGINX serves UI applications as static content and proxies API requests to backend services.
+> Running one product on a laptop? Use [`../amrit-local-setup/automation/`](../amrit-local-setup/automation/README.md) instead — much faster.
 
 ## Prerequisites
 
-**Critical Requirements:**
-- **Docker Desktop must be installed and RUNNING** (not just installed)
-- **MySQL Server 8.0** installed locally for data loading scripts
-  - **Important:** Must be MySQL 8.0 specifically (not 8.1+ or 5.x)
-  - MySQL CLI must be in system PATH for data loading
-  - Test: `mysql --version` should show 8.0.x
+See [root README](../README.md#prerequisites). For this path specifically: **16 GB RAM minimum** (32 GB recommended), **50 GB disk**, and ports 80 + 8082–8095 free. First-time setup takes 15–30 minutes.
 
-**Required Software:**
-- Docker Engine 20.10+
-- Docker Compose 2.0+
-- Git 2.30+
-- Bash shell (Linux/Mac) or Git Bash (Windows)
+## Two Compose stacks
 
-**System Requirements:**
-- 16GB RAM minimum, 32GB recommended
-- 50GB available disk space
-- Internet connectivity for pulling images and cloning repositories
+- **Infrastructure** — [`docker-compose.infra.yml`](docker-compose.infra.yml): MySQL 8.0, Redis 7.2, MongoDB 6.0. Env-file-driven passwords, hardened healthchecks.
+- **Applications** — [`docker-compose.yml`](docker-compose.yml): 14 Spring Boot APIs, 10 Angular UIs as static bundles, NGINX on port 80.
 
-**First-Time Setup Warning:**
-Initial setup takes 15-30 minutes for:
-- Downloading Docker images
-- Cloning and building API/UI repositories
-- Database initialization
-- This is normal, be patient
+The dev-focused sibling at [`../amrit-local-setup/infra/docker-compose.yml`](../amrit-local-setup/infra/docker-compose.yml) is intentionally separate (hardcoded dev defaults, includes Elasticsearch + Kibana). Keep both in sync when changing MySQL/Redis/Mongo shape.
 
-## Installation
+## Install
 
-### Overview of Setup Process
-
-The complete AMRIT deployment involves three repositories:
-1. **AMRIT-DevOps** (this repository) - Infrastructure and application containers
-2. **AMRIT-DB** - Database schema migrations (separate repository)
-3. **Individual API/UI repositories** - Cloned automatically by setup script
-
-**Setup Order:**
-1. Clone AMRIT-DevOps and configure environment
-2. Run setup script to clone API/UI repositories
-3. Start infrastructure services (MySQL, Redis, MongoDB)
-4. Switch to AMRIT-DB and run schema migrations
-5. Return to AMRIT-DevOps and start application services
-
-### 1. Clone Repository
 ```bash
 git clone https://github.com/PSMRI/AMRIT-DevOps.git
 cd AMRIT-DevOps/amrit-docker-setup
+
+cp .env.example .env                                          # fill in passwords + API keys
+chmod +x setup.sh && ./setup.sh                               # clone + build all API/UI repos (15–30 min)
+
+docker compose -f docker-compose.infra.yml up -d              # start MySQL, Redis, Mongo
 ```
 
-### 2. Environment Configuration
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and configure required variables:
-```bash
-# Database credentials
-MYSQL_ROOT_PASSWORD=your_secure_password
-MYSQL_USER=amrit_user
-MYSQL_PASSWORD=your_db_password
-MONGO_ROOT_PASSWORD=your_mongo_password
-
-# Database connection strings
-DATABASE_URL=jdbc:mysql://mysql:3306/db_iemr
-DATABASE_USERNAME=amrit_user
-DATABASE_PASSWORD=your_db_password
-
-# API base URLs (internal Docker network)
-COMMON_API_BASE_URL=http://common-api:8080
-IDENTITY_API_BASE_URL=http://identity-api:8080
-MMU_API_BASE_URL=http://mmu-api:8080
-# ... configure remaining API URLs
-```
-
-Refer to `.env.example` for complete list of configuration variables.
-
-### 3. Pre-Flight Check
-
-Before proceeding, verify Docker Desktop is running:
-```bash
-docker ps
-# Should show container list (may be empty), not a connection error
-```
-
-### 4. Clone and Build Application Repositories
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-This script:
-- Clones all 14 API repositories into `API/` directory
-- Clones all 10 UI repositories into `UI/` directory
-- Initializes Git submodules for UI projects
-- Builds Angular applications and creates production bundles
-- Fixes directory structures for NGINX serving
-
-**Note:** This process may take 15-30 minutes depending on network speed and system performance.
-
-### 5. Deploy Infrastructure Services
-```bash
-docker compose -f docker-compose.infra.yml up -d
-```
-
-Wait for services to initialize (30-60 seconds). First-time startup takes longer. Verify health:
-```bash
-docker compose -f docker-compose.infra.yml ps
-```
-
-All services should show status as "Up" with healthy status.
-
-### 6. Setup Database Schemas (AMRIT-DB)
-
-**This is a critical step that must be completed before starting application services.**
-
-Database schemas are managed in a separate repository. You need to switch to it now:
+Then run schema migrations — follow the [AMRIT-DB](https://github.com/PSMRI/AMRIT-DB) README (point it at `localhost:3306` with your `.env`'s `MYSQL_ROOT_PASSWORD`). Come back and start apps:
 
 ```bash
-# Navigate to parent directory
-cd ../..
-
-# Clone AMRIT-DB if not already cloned
-git clone https://github.com/PSMRI/AMRIT-DB.git
-cd AMRIT-DB
+docker compose -f docker-compose.yml up -d                    # start all 14 APIs, 10 UIs, NGINX
+# or
+./start-all.sh                                                # infra + apps, with optional rebuild
 ```
 
-**Configure database connection:**
+Verify:
 ```bash
-cp src/main/environment/common_example.properties src/main/environment/common_local.properties
+docker ps                                                     # ~26 containers
+curl http://localhost/                                        # NGINX
+curl http://localhost/admin-api/v3/api-docs                   # API health
 ```
 
-**Edit** `src/main/environment/common_local.properties` with your MySQL credentials:
-```properties
-# These should match what you configured in AMRIT-DevOps .env file
-spring.datasource.dbiemr.jdbc-url=jdbc:mysql://localhost:3306/db_iemr
-spring.datasource.dbiemr.username=root
-spring.datasource.dbiemr.password=YOUR_MYSQL_PASSWORD
+## Service access
 
-spring.datasource.dbidentity.jdbc-url=jdbc:mysql://localhost:3306/db_identity
-spring.datasource.dbidentity.username=root
-spring.datasource.dbidentity.password=YOUR_MYSQL_PASSWORD
+UIs are served under subpaths on port 80: `/admin/`, `/hwc/`, `/inventory/`, `/tm/`, `/mmu/`, `/scheduler/`, `/hwc-scheduler/`, `/hwc-inventory/`, `/ecd/`.
 
-spring.datasource.dbreporting.jdbc-url=jdbc:mysql://localhost:3306/db_reporting
-spring.datasource.dbreporting.username=root
-spring.datasource.dbreporting.password=YOUR_MYSQL_PASSWORD
+APIs follow the pattern `/<name>-api/` on port 80, or are directly exposed on host ports 8082–8095. Append `v3/api-docs` or `swagger-ui.html` to any API path for its OpenAPI docs.
 
-spring.datasource.db1097identity.jdbc-url=jdbc:mysql://localhost:3306/db_1097_identity
-spring.datasource.db1097identity.username=root
-spring.datasource.db1097identity.password=YOUR_MYSQL_PASSWORD
-```
-
-**Run database migrations:**
-```bash
-mvn clean install -DENV_VAR=local
-mvn spring-boot:run -DENV_VAR=local
-```
-
-**Wait for completion.** You should see logs indicating successful migration:
-```
-Successfully applied X migrations to schema `db_iemr`
-Successfully applied Y migrations to schema `db_identity`
-Successfully applied Z migrations to schema `db_reporting`
-Successfully applied W migrations to schema `db_1097_identity`
-```
-
-**Stop the service** with Ctrl+C after migrations complete.
-
-**Verify migrations:**
-```bash
-docker exec mysql-container mysql -uroot -p -e "USE db_iemr; SELECT COUNT(*) FROM flyway_schema_history;"
-```
-
-For detailed troubleshooting, see [AMRIT-DB README](https://github.com/PSMRI/AMRIT-DB).
-
-### 7. Deploy Application Services
-
-**Return to AMRIT-DevOps:**
-```bash
-cd ../AMRIT-DevOps/amrit-docker-setup
-```
-
-**Start all application services:**
-```bash
-docker compose -f docker-compose.yml up -d
-```
-
-Initial startup takes 5-10 minutes as services compile and initialize.
-
-### 8. Verify Deployment
-```bash
-# Check all containers
-docker ps
-
-# Verify NGINX is accessible
-curl http://localhost/
-
-# Check API health
-curl http://localhost/admin-api/v3/api-docs
-```
-
-## Service Access
-
-### Web Applications
-
-| Application      | URL                             |
-|------------------|---------------------------------|
-| Admin UI         | http://localhost/admin/         |
-| HWC UI           | http://localhost/hwc/           |
-| Inventory UI     | http://localhost/inventory/     |
-| TM UI            | http://localhost/tm/            |
-| MMU UI           | http://localhost/mmu/           |
-| Scheduler UI     | http://localhost/scheduler/     |
-| HWC Scheduler UI | http://localhost/hwc-scheduler/ |
-| HWC Inventory UI | http://localhost/hwc-inventory/ |
-| ECD UI           | http://localhost/ecd/           |
-
-### API Services
-
-| Service           | Health Check Endpoint                         | Direct Port |
-|-------------------|-----------------------------------------------|-------------|
-| Admin API         | http://localhost/admin-api/v3/api-docs        | 8082        |
-| Common API        | http://localhost/common-api/v3/api-docs       | 8083        |
-| ECD API           | http://localhost/ecd-api/v3/api-docs          | 8084        |
-| HWC API           | http://localhost/hwc-api/v3/api-docs          | 8085        |
-| Inventory API     | http://localhost/inventory-api/v3/api-docs    | 8086        |
-| MMU API           | http://localhost/mmu-api/v3/api-docs          | 8087        |
-| Scheduler API     | http://localhost/scheduler-api/v3/api-docs    | 8088        |
-| TM API            | http://localhost/tm-api/v3/api-docs           | 8089        |
-| FLW API           | http://localhost/flw-api/v3/api-docs          | 8090        |
-| FHIR API          | http://localhost/fhir-api/v3/api-docs         | 8091        |
-| Helpline104 API   | http://localhost/helpline104-api/v3/api-docs  | 8092        |
-| Helpline1097 API  | http://localhost/helpline1097-api/v3/api-docs | 8093        |
-| Identity API      | http://localhost/identity-api/v3/api-docs     | 8094        |
-| BeneficiaryID API | http://localhost/beneficiary-api/v3/api-docs  | 8095        |
-
-### Infrastructure Services
-
-| Service  | Port  | Credentials (default)          |
-|----------|-------|--------------------------------|
-| MySQL    | 3306  | root/configured_in_.env        |
-| Redis    | 6379  | No authentication by default   |
-| MongoDB  | 27017 | root/configured_in_.env        |
+| API | NGINX path | Direct port |
+|---|---|---|
+| Admin / Common / ECD / HWC | `/admin-api/` … | 8082 / 8083 / 8084 / 8085 |
+| Inventory / MMU / Scheduler / TM | `/inventory-api/` … | 8086 / 8087 / 8088 / 8089 |
+| FLW / FHIR / Helpline104 / Helpline1097 | `/flw-api/` … | 8090 / 8091 / 8092 / 8093 |
+| Identity / BeneficiaryID | `/identity-api/` · `/beneficiary-api/` | 8094 / 8095 |
 
 ## Operations
 
-### Starting Services
-
-**Start all services (recommended):**
 ```bash
-./start-all.sh
+./start-all.sh                                                # start infra + apps
+./stop-all.sh                                                 # stop both
+docker compose -f docker-compose.yml restart <service>
+docker compose -f docker-compose.yml logs -f <service>
+docker compose -f docker-compose.yml down -v                  # ⚠ destroys app volumes
+docker compose -f docker-compose.infra.yml down -v            # ⚠ destroys DB volumes
 ```
 
-**Start infrastructure only:**
+Database shell:
 ```bash
-docker compose -f docker-compose.infra.yml up -d
-```
-
-**Start applications only:**
-```bash
-docker compose -f docker-compose.yml up -d
-```
-
-**Start specific service:**
-```bash
-docker compose -f docker-compose.yml up -d admin-api
-```
-
-### Stopping Services
-
-**Stop all services:**
-```bash
-./stop-all.sh
-```
-
-**Stop applications only:**
-```bash
-docker compose -f docker-compose.yml down
-```
-
-**Stop and remove all data volumes:**
-```bash
-docker compose -f docker-compose.infra.yml down -v
-docker compose -f docker-compose.yml down -v
-```
-
-### Monitoring
-
-**View all running containers:**
-```bash
-docker ps
-```
-
-**View container logs:**
-```bash
-# Follow logs in real-time
-docker logs -f <container-name>
-
-# View last 100 lines
-docker logs --tail 100 <container-name>
-
-# View logs from specific service
-docker compose -f docker-compose.yml logs -f admin-api
-```
-
-**Check container resource usage:**
-```bash
-docker stats
-```
-
-**Inspect container health:**
-```bash
-docker inspect --format='{{json .State.Health}}' <container-name> | jq
-```
-
-### Database Management
-
-**MySQL:**
-```bash
-# Connect to MySQL
 docker exec -it mysql-container mysql -uroot -p
-
-# Show databases
-SHOW DATABASES;
-
-# Access specific database
-USE db_iemr;
-
-# List tables
-SHOW TABLES;
-```
-
-**MongoDB:**
-```bash
-# Connect to MongoDB
 docker exec -it mongodb-container mongosh -u root -p
-
-# Show databases
-show dbs
-
-# Use database
-use mydatabase
-
-# List collections
-show collections
-```
-
-**Redis:**
-```bash
-# Connect to Redis CLI
 docker exec -it redis-container redis-cli
-
-# Test connection
-PING
-
-# View all keys
-KEYS *
-
-# Get cache statistics
-INFO stats
 ```
 
-### Backup and Restore
-
-**MySQL Backup:**
+Backup:
 ```bash
 docker exec mysql-container mysqldump -uroot -p db_iemr > backup_$(date +%Y%m%d).sql
-```
-
-**MySQL Restore:**
-```bash
-docker exec -i mysql-container mysql -uroot -p db_iemr < backup_20250101.sql
-```
-
-**MongoDB Backup:**
-```bash
 docker exec mongodb-container mongodump --out=/data/backup
-docker cp mongodb-container:/data/backup ./mongodb_backup
 ```
 
 ## Troubleshooting
 
-### Common Setup Issues
+- **Port 80 busy**: `lsof -i :80` — stop the host web server.
+- **OOM-killed containers**: raise Docker Desktop memory limit; or bring up a subset first (`admin-api common-api identity-api`).
+- **UI returns 404**: `docker exec amrit-nginx nginx -t`; rebuild a UI with `cd UI/<app> && npm install && npm run build`.
+- **Build cache corruption**: `docker builder prune -a && docker compose build --no-cache <service>`.
+- **App containers can't reach DB**: in `.env`, use `jdbc:mysql://mysql:3306/…` (service name), not `localhost`.
 
-#### Docker Desktop Not Running
+More baseline issues → [root README](../README.md#troubleshooting).
 
-**Error:** `Cannot connect to the Docker daemon`
+## Security checklist before exposing publicly
 
-**Solution:** Start Docker Desktop and wait for it to fully initialize before running any docker commands.
+1. Replace every default password in `.env`.
+2. Remove `ports:` from infra services in `docker-compose.infra.yml` to keep them container-internal.
+3. Terminate TLS at NGINX (add certs, switch to `listen 443 ssl`).
+4. Add `limit_req_zone` rate limits on API endpoints in `nginx/`.
+5. Move secrets to Docker secrets (`docker secret create …`).
+6. Restrict `app-network` ingress via host firewall.
+7. Enable MySQL SSL for cross-host DB traffic.
 
-#### Docker Compose Version Warning
+## Performance knobs
 
-**Error:** `version is obsolete` or Docker Compose compatibility warning
+- **HikariCP** in `.env`: `SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE`, `…_MINIMUM_IDLE`, `…_IDLE_TIMEOUT`.
+- **JVM heap** per service Dockerfile: `ENV JAVA_OPTS="-Xms512m -Xmx2048m"`.
+- **NGINX caching**: `nginx/conf.d/cache-rules.conf` (UI assets 1y, API responses no-cache).
 
-**Solution:** Edit `docker-compose.yml` and `docker-compose.infra.yml`, remove or comment out the version line:
-```yaml
-# version: \"3.9\"  # Remove or comment this line
+## Production notes
 
-services:
-  ...
-```
+Consider managed databases (RDS / Atlas / ElastiCache), Kubernetes or Swarm for HA, externalized logging via [`../ELK/`](../ELK/), automated backups + DR drills, and health alerting.
 
-Modern Docker Compose doesn't require explicit version specification.
-
-#### MySQL Command Not Recognized (Data Loading)
-
-**Error:** `'mysql' is not recognized as an internal or external command`
-
-**Cause:** MySQL CLI not installed or not in PATH
-
-**Solutions:**
-1. Install MySQL 8.0 and add to PATH
-2. Or use Docker exec for data loading:
-   ```bash
-   docker exec -i mysql-container mysql -uroot -p < data.sql
-   ```
-
-#### First-Time Setup Very Slow
-
-**Symptom:** Setup taking 20-30 minutes
-
-**This is normal for:**
-- First-time installation
-- After long gap between runs
-- After clearing Docker cache
-
-Monitor progress: `docker-compose logs -f`
-
-### Service Runtime Issues
-
-### Services Not Starting
-
-**Check container status:**
-```bash
-docker compose -f docker-compose.yml ps
-docker compose -f docker-compose.infra.yml ps
-```
-
-**View error logs:**
-```bash
-docker compose -f docker-compose.yml logs <service-name>
-```
-
-**Restart specific service:**
-```bash
-docker compose -f docker-compose.yml restart <service-name>
-```
-
-### Port Conflicts
-
-If ports 80, 3306, 6379, or 27017 are already in use:
-```bash
-# Check what's using a port
-netstat -tulpn | grep <port>
-
-# Stop conflicting services
-sudo systemctl stop mysql
-sudo systemctl stop redis
-sudo systemctl stop mongod
-```
-
-### Database Connection Issues
-
-**Verify database is accessible:**
-```bash
-docker exec mysql-container mysqladmin ping -uroot -p
-```
-
-**Check network connectivity:**
-```bash
-docker network inspect amrit_app-network
-```
-
-**Verify environment variables:**
-```bash
-docker compose -f docker-compose.yml config
-```
-
-### Memory Issues
-
-If containers are killed due to OOM:
-```bash
-# Increase Docker memory limit
-# On Docker Desktop: Settings > Resources > Memory
-
-# Check current memory usage
-docker stats --no-stream
-
-# Restart with fewer services initially
-docker compose -f docker-compose.yml up -d admin-api common-api identity-api
-```
-
-### Build Failures
-
-**Clear Docker build cache:**
-```bash
-docker builder prune -a
-```
-
-**Rebuild specific service:**
-```bash
-docker compose -f docker-compose.yml build --no-cache <service-name>
-docker compose -f docker-compose.yml up -d <service-name>
-```
-
-### UI Not Loading
-
-**Verify NGINX configuration:**
-```bash
-docker exec amrit-nginx nginx -t
-```
-
-**Check if static files exist:**
-```bash
-docker exec amrit-nginx ls -la /usr/share/nginx/html/
-```
-
-**Rebuild UI applications:**
-```bash
-cd UI/<app-name>
-npm install
-npm run build
-```
-
-## Directory Structure
+## Layout
 
 ```
 amrit-docker-setup/
-├── API/                        # API repositories (gitignored)
-│   ├── Admin-API/
-│   ├── Common-API/
-│   ├── HWC-API/
-│   └── ... (14 total)
-├── UI/                         # UI repositories (gitignored)
-│   ├── ADMIN-UI/
-│   ├── Common-UI/
-│   ├── HWC-UI/
-│   └── ... (10 total)
-├── nginx/                      # NGINX configuration
-│   ├── nginx.conf
-│   └── conf.d/
-│       ├── cache-rules.conf
-│       ├── common_headers.conf
-│       └── proxy_settings.conf
-├── logs/                       # Application logs (gitignored)
-├── docker-compose.yml          # Application services
-├── docker-compose.infra.yml    # Infrastructure services
-├── Dockerfile.nginx            # NGINX container definition
-├── .env                        # Environment configuration (gitignored)
-├── .env.example                # Environment template
-├── init.sql                    # MySQL initialization
-├── mongo-init.js               # MongoDB initialization
-├── my.cnf                      # MySQL configuration
-├── setup.sh                    # Repository setup script
-├── start-all.sh                # Start all services
-└── stop-all.sh                 # Stop all services
+├── API/ · UI/                   cloned repos + UI builds (gitignored)
+├── nginx/                       NGINX config
+├── docker-compose.yml           application containers
+├── docker-compose.infra.yml     MySQL / Redis / Mongo (server-tuned)
+├── Dockerfile.nginx
+├── .env.example                 copy → .env
+├── init.sql · mongo-init.js · my.cnf
+├── setup.sh                     clone + build
+└── start-all.sh · stop-all.sh
 ```
-
-## Performance Tuning
-
-### Database Optimization
-
-**MySQL connection pooling** (configure in `.env`):
-```bash
-SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE=20
-SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=5
-SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT=300000
-```
-
-**Redis persistence:**
-- Current configuration uses AOF (Append Only File) for durability
-- For better performance with acceptable data loss: disable AOF in `docker-compose.infra.yml`
-
-### NGINX Caching
-
-Static asset caching is configured in `nginx/conf.d/cache-rules.conf`:
-- UI assets: 1 year cache
-- API responses: No cache
-- Health checks: No cache
-
-### Application Performance
-
-**Java heap size** (modify in service Dockerfile):
-```bash
-ENV JAVA_OPTS="-Xms512m -Xmx2048m"
-```
-
-**Spring Boot profiles:**
-Set in `.env` for production optimizations:
-```bash
-SPRING_PROFILES_ACTIVE=production
-```
-
-## Security Considerations
-
-1. Change all default passwords in `.env` before deployment
-2. Restrict database ports exposure (remove from `ports:` in production)
-3. Enable HTTPS by configuring SSL certificates in NGINX
-4. Implement rate limiting in NGINX for API endpoints
-5. Use Docker secrets for sensitive credentials in production
-6. Enable MySQL SSL connections for production databases
-7. Configure firewall rules to restrict access to infrastructure ports
-
-## Production Deployment
-
-For production environments:
-
-1. Use external managed databases instead of containerized ones
-2. Implement horizontal scaling with multiple NGINX instances
-3. Configure centralized logging (ELK stack, CloudWatch, etc.)
-4. Set up health monitoring and alerting
-5. Implement automated backups and disaster recovery
-6. Use container orchestration (Kubernetes, Docker Swarm)
-7. Enable SSL/TLS with valid certificates
-8. Configure proper resource limits for each container
-
-## Related Documentation
-
-- [Main DevOps Repository](../README.md)
-- [Local Development Setup](../amrit-local-setup/README.md)
-- [Database Anonymization](../db-anonymization/)
-- [ELK Monitoring Setup](../ELK/SETUP.md)
-- [AMRIT Platform Documentation](https://piramal-swasthya.gitbook.io/amrit/)
-

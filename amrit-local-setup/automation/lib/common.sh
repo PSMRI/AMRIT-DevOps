@@ -1,6 +1,10 @@
 #!/bin/bash
-# Shared setup functions for AMRIT scripts.
+# Shared primitives for the AMRIT automation wizard.
 # Source this file; do not run directly.
+#
+# Exposes: logging, clone/setup helpers, infra lifecycle, tmux helpers,
+# DB migration + master-data loaders (sentinel-guarded), preflight check,
+# and ensure_gum for the wizard UI.
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
@@ -10,12 +14,103 @@ log_error() { echo -e "${RED}[ERROR]${NC} [${1}] ${2}"; }
 
 AMRIT_SETUP_DIR="${AMRIT_SETUP_DIR:-$HOME/.amrit}"
 
-# ── One-time setup ───────────────────────────────────────────────────────────
+# ── Preflight ────────────────────────────────────────────────────────────────
+
+# Verifies required CLI tools are on PATH and Docker is running.
+# Called at wizard entry. Exits non-zero if any check fails.
+preflight() {
+    local missing=()
+    local required=(docker java mvn node tmux git lsof)
+    for tool in "${required[@]}"; do
+        command -v "$tool" &>/dev/null || missing+=("$tool")
+    done
+
+    # ng is optional — some UIs use `npm start` wrappers instead.
+    if ! command -v ng &>/dev/null; then
+        log_warn "preflight" "Angular CLI (ng) not on PATH — UI windows may fail. Install with: npm install -g @angular/cli"
+    fi
+
+    if [ ${#missing[@]} -gt 0 ]; then
+        log_error "preflight" "Missing required tools: ${missing[*]}"
+        log_error "preflight" "See AMRIT-DevOps/README.md#prerequisites for install pointers."
+        return 1
+    fi
+
+    if ! docker ps &>/dev/null; then
+        log_error "preflight" "Docker daemon is not running. Start Docker Desktop and retry."
+        return 1
+    fi
+
+    if [ ! -w "$WORKSPACE" ]; then
+        log_error "preflight" "WORKSPACE ($WORKSPACE) is not writable."
+        return 1
+    fi
+
+    log_info "preflight" "All required tools available; Docker is running."
+}
+
+# Detects gum; offers to install via brew (macOS) or apt/dnf (Linux).
+# Exits if the user declines or install fails.
+ensure_gum() {
+    if command -v gum &>/dev/null; then
+        return 0
+    fi
+
+    log_warn "gum" "The 'gum' CLI is required for the interactive wizard."
+    log_info "gum" "Install pointers: https://github.com/charmbracelet/gum#installation"
+
+    local installer=""
+    case "$(uname -s)" in
+        Darwin) command -v brew &>/dev/null && installer="brew install gum" ;;
+        Linux)
+            if command -v apt-get &>/dev/null; then
+                installer="sudo mkdir -p /etc/apt/keyrings && curl -fsSL https://repo.charm.sh/apt/gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg && echo 'deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *' | sudo tee /etc/apt/sources.list.d/charm.list && sudo apt-get update && sudo apt-get install -y gum"
+            elif command -v dnf &>/dev/null; then
+                installer="echo '[charm]\nname=Charm\nbaseurl=https://repo.charm.sh/yum/\nenabled=1\ngpgcheck=1\ngpgkey=https://repo.charm.sh/yum/gpg.key' | sudo tee /etc/yum.repos.d/charm.repo && sudo dnf install -y gum"
+            fi
+            ;;
+    esac
+
+    if [ -z "$installer" ]; then
+        log_error "gum" "No automatic installer available for this platform. Install gum manually and retry."
+        return 1
+    fi
+
+    read -rp "Install gum now? [y/N] " reply
+    case "$reply" in
+        [yY]|[yY][eE][sS])
+            bash -c "$installer" || { log_error "gum" "Install failed."; return 1; }
+            command -v gum &>/dev/null || { log_error "gum" "Install completed but 'gum' still not on PATH."; return 1; }
+            log_info "gum" "gum installed."
+            ;;
+        *)
+            log_error "gum" "Cannot continue without gum. Either install it or re-run with flags (see --help)."
+            return 1
+            ;;
+    esac
+}
+
+# ── Sentinel flag handling ───────────────────────────────────────────────────
+
+apply_reset_flags() {
+    mkdir -p "$AMRIT_SETUP_DIR"
+    for arg in "$@"; do
+        case "$arg" in
+            --reset-db)   rm -f "$AMRIT_SETUP_DIR/.db_migrated";  log_info "reset" "DB migration sentinel cleared." ;;
+            --reset-data) rm -f "$AMRIT_SETUP_DIR/.data_loaded";  log_info "reset" "Master data sentinel cleared." ;;
+            --reset-all)
+                rm -f "$AMRIT_SETUP_DIR/.db_migrated" "$AMRIT_SETUP_DIR/.data_loaded"
+                log_info "reset" "All sentinels cleared."
+                ;;
+        esac
+    done
+}
+
+# ── One-time setup: DB migrations & master data ──────────────────────────────
 
 # Clones AMRIT-DB and runs Flyway migrations via Maven.
 # Skipped if sentinel file exists. Non-fatal on failure.
-# Usage: run_db_migrations
-# Requires: $WORKSPACE, $AMRIT_SETUP_DIR
+# Requires: $WORKSPACE
 run_db_migrations() {
     local sentinel="$AMRIT_SETUP_DIR/.db_migrated"
 
@@ -74,8 +169,7 @@ run_db_migrations() {
 
 # Loads master/dummy data by delegating to loaddummydata.sh.
 # Skipped if sentinel file exists. Non-fatal on failure.
-# Usage: load_master_data
-# Requires: $DEVOPS_DIR, $AMRIT_SETUP_DIR
+# Requires: $COMPOSE_DIR
 load_master_data() {
     local sentinel="$AMRIT_SETUP_DIR/.data_loaded"
 
@@ -84,7 +178,7 @@ load_master_data() {
         return 0
     fi
 
-    local script="$DEVOPS_DIR/amrit-local-setup/loaddummydata.sh"
+    local script="$COMPOSE_DIR/loaddummydata.sh"
 
     if [ ! -f "$script" ]; then
         log_warn "master-data" "loaddummydata.sh not found at $script — skipping."
@@ -107,7 +201,7 @@ load_master_data() {
 # Requires: $COMPOSE_DIR
 start_infrastructure() {
     log_info "infra" "Starting infrastructure containers..."
-    docker-compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
+    docker compose -f "$COMPOSE_DIR/docker-compose.yml" up -d
     log_info "infra" "Containers started. Waiting for readiness..."
     wait_for_infrastructure
 }
@@ -123,7 +217,7 @@ wait_for_container() {
     while ! eval "$check_cmd" &>/dev/null; do
         if [ "$elapsed" -ge "$timeout" ]; then
             log_error "infra" "$label did not become ready within ${timeout}s."
-            log_error "infra" "Check logs: docker-compose -f \"$COMPOSE_DIR/docker-compose.yml\" logs $label"
+            log_error "infra" "Check logs: docker compose -f \"$COMPOSE_DIR/docker-compose.yml\" logs $label"
             return 1
         fi
         sleep "$interval"
@@ -152,7 +246,6 @@ wait_for_infrastructure() {
 
 # ── Repository Setup ──────────────────────────────────────────────────────────
 
-# Clones a repository with no additional setup steps.
 # Usage: clone_repo <name> <repo_url>
 # Requires: $WORKSPACE
 clone_repo() {
@@ -169,7 +262,6 @@ clone_repo() {
     fi
 }
 
-# Clones a Spring Boot API repo and copies the example properties file.
 # Usage: setup_api <name> <repo_url> <example_props> <local_props>
 # Requires: $WORKSPACE
 setup_api() {
@@ -182,13 +274,15 @@ setup_api() {
     clone_repo "$name" "$repo_url"
 
     if [ ! -f "$dir/$local_props" ]; then
+        if [ ! -f "$dir/$example_props" ]; then
+            log_warn "$name" "Example properties file '$example_props' not found in repo — skipping copy."
+            return 0
+        fi
         cp "$dir/$example_props" "$dir/$local_props"
-        log_info "$name" "Edit $local_props with your local connection details before starting the service."
+        log_info "$name" "Created $local_props from example. Edit it with your local connection details before starting."
     fi
 }
 
-# Clones an Angular UI repo, initialises submodules, installs npm deps,
-# and copies the example environment file.
 # Usage: setup_ui <name> <repo_url> <example_env> <local_env>
 # Requires: $WORKSPACE
 setup_ui() {
@@ -208,21 +302,24 @@ setup_ui() {
     fi
 
     if [ ! -f "$dir/$local_env" ]; then
+        if [ ! -f "$dir/$example_env" ]; then
+            log_warn "$name" "Example env file '$example_env' not found — skipping copy."
+            return 0
+        fi
         cp "$dir/$example_env" "$dir/$local_env"
-        log_info "$name" "Edit $local_env with your local API endpoints before starting the service."
+        log_info "$name" "Created $local_env from example. Edit it with your local API endpoints before starting."
     fi
 }
 
 # ── Service Startup (tmux) ───────────────────────────────────────────────────
 
-# Creates a new tmux session. Kills any existing session with the same name.
 # Usage: create_tmux_session <session_name> <first_window_name>
 create_tmux_session() {
     local session="$1"
     local first_window="$2"
 
     if ! command -v tmux &>/dev/null; then
-        log_error "tmux" "tmux is not installed. Install it with: sudo apt install tmux"
+        log_error "tmux" "tmux is not installed."
         exit 1
     fi
 
@@ -235,7 +332,6 @@ create_tmux_session() {
     log_info "tmux" "Created session '$session'."
 }
 
-# Sends a command to an existing window, or creates the window if it doesn't exist.
 # Usage: run_in_tmux <session_name> <window_name> <command>
 run_in_tmux() {
     local session="$1"
@@ -249,4 +345,3 @@ run_in_tmux() {
     tmux send-keys -t "$session:$window" "$cmd" Enter
     log_info "tmux" "Started '$window'."
 }
-
