@@ -330,6 +330,17 @@ setup_api() {
         fi
         cp "$dir/$example_props" "$dir/$local_props"
         log_info "$name" "Created $local_props from example. Edit it with your local connection details before starting."
+    elif [ -f "$dir/$example_props" ] && [ -f "$LIB_DIR/check_missing_props.py" ]; then
+        # An existing local file may predate keys the example template added since
+        # it was created. Don't touch it (devs own their config values), but warn:
+        # Spring fails to start on the first unresolved ${placeholder}, and that
+        # error is opaque without this hint.
+        local missing
+        missing=$(python3 "$LIB_DIR/check_missing_props.py" "$dir/$example_props" "$dir/$local_props" 2>/dev/null)
+        if [ -n "$missing" ]; then
+            log_warn "$name" "$local_props is missing keys present in $example_props: $missing"
+            log_warn "$name" "Define them in $local_props before starting (the app may fail with 'Could not resolve placeholder')."
+        fi
     fi
 }
 
