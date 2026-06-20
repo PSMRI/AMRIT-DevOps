@@ -169,8 +169,25 @@ run_selection() {
         log_info "main" "Skipping infra (--skip-infra)."
     fi
 
+    # Create the tmux session up front and only once. AMRIT-DB is a persistent
+    # service, so when DB setup is enabled it takes the first window ('amrit-db')
+    # and starts before everything else; otherwise the first API takes it. The
+    # API/UI launchers below add their windows to this same session — recreating
+    # it here would kill the long-running AMRIT-DB window.
+    local first_window
     if [ -z "$OPT_SKIP_DB" ]; then
-        run_db_migrations || true
+        first_window="amrit-db"
+    else
+        first_window=$(echo "$api_list" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+        [ -z "$first_window" ] && first_window=$(echo "$ui_list" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')
+        [ -z "$first_window" ] && first_window="amrit"
+    fi
+    create_tmux_session "$session" "$first_window"
+
+    if [ -z "$OPT_SKIP_DB" ]; then
+        # Launches AMRIT-DB in the 'amrit-db' window and waits for migrations;
+        # leaves the service running. Non-fatal on failure.
+        run_db_migrations "$session" || true
     else
         log_info "main" "Skipping DB migrations (--skip-db)."
     fi
@@ -186,14 +203,8 @@ run_selection() {
     for api in $api_list; do setup_api_by_name "$api" || return 1; done
     for ui in $ui_list; do setup_ui_by_name "$ui" || return 1; done
 
-    # ── Launch in tmux ───────────────────────────────────────────────────
-    # First API gets the initial window; the rest use new-window.
-    local first_api
-    first_api=$(echo "$api_list" | awk '{print $1}')
-    local first_window
-    first_window=$(echo "$first_api" | tr '[:upper:]' '[:lower:]')
-    create_tmux_session "$session" "$first_window"
-
+    # ── Launch in tmux (session already created above) ───────────────────
+    # The launchers create a window per service (or reuse the first window).
     for api in $api_list; do start_api_in_tmux "$session" "$api"; done
     for ui in $ui_list; do start_ui_in_tmux "$session" "$ui"; done
 

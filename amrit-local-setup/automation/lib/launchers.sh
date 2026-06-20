@@ -49,8 +49,11 @@ start_api_in_tmux() {
     local window
     window=$(echo "$name" | tr '[:upper:]' '[:lower:]')
 
+    # -Dmaven.test.skip=true skips BOTH test execution and test *compilation*.
+    # Several AMRIT APIs ship test sources that don't compile standalone; plain
+    # -DskipTests still compiles them and fails the build, so use test.skip here.
     run_in_tmux "$session" "$window" \
-        "cd \"$WORKSPACE/$name\" && mvn clean install -DskipTests=true && mvn spring-boot:run -DENV_VAR=local"
+        "cd \"$WORKSPACE/$name\" && mvn clean install -Dmaven.test.skip=true && mvn spring-boot:run -DENV_VAR=local"
 }
 
 # Launches a UI in a tmux window with its port from services.conf.
@@ -62,8 +65,13 @@ start_ui_in_tmux() {
     local window
     window=$(echo "$name" | tr '[:upper:]' '[:lower:]')
 
-    local serve_cmd="ng serve"
-    [ -n "$port" ] && serve_cmd="ng serve --port=$port"
+    # Serve the LOCAL configuration so the app talks to localhost APIs. Bare
+    # `ng serve` uses the repo's default (development) configuration, which
+    # file-replaces environment.ts with environment.development.ts (remote dev
+    # server). setup_ui injects a `local` configuration that uses
+    # environment.local.ts; select it explicitly here.
+    local serve_cmd="ng serve --configuration=local"
+    [ -n "$port" ] && serve_cmd="ng serve --configuration=local --port=$port"
 
     run_in_tmux "$session" "$window" \
         "cd \"$WORKSPACE/$name\" && $serve_cmd"

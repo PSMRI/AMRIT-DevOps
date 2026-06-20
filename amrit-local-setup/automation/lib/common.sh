@@ -161,79 +161,60 @@ apply_reset_flags() {
 
 # ── One-time setup: DB migrations & master data ──────────────────────────────
 
-# Clones AMRIT-DB and runs Flyway migrations via Maven.
-# Skipped if sentinel file exists. Non-fatal on failure.
-# Requires: $WORKSPACE
+# Clones AMRIT-DB and launches it as a PERSISTENT service in the given tmux
+# session (window 'amrit-db'). AMRIT-DB is a Spring Boot app that applies Flyway
+# migrations at startup and then keeps running to serve the schema-status API
+# (GET /db/migration/version, /health on :8080) — so it is never killed.
+#
+# Migration completion is detected by polling that status API (Spring Boot runs
+# Flyway before it accepts requests, so a 200 means migrations are done). If
+# AMRIT-DB is already serving on :8080, it is reused rather than launched twice.
+#
+# Usage: run_db_migrations <tmux_session>
+# Requires: $WORKSPACE, an existing tmux session
 run_db_migrations() {
-    local sentinel="$AMRIT_SETUP_DIR/.db_migrated"
-
-    if [ -f "$sentinel" ]; then
-        log_info "db-migration" "Already applied, skipping. (Remove $sentinel to re-run)"
-        return 0
-    fi
+    local session="$1"
+    local url="http://localhost:8080/db/migration/version"
 
     mkdir -p "$AMRIT_SETUP_DIR"
 
+    # Clone + configure AMRIT-DB (idempotent).
     setup_api "AMRIT-DB" "https://github.com/PSMRI/AMRIT-DB.git" \
         "src/main/environment/common_example.properties" \
-        "src/main/environment/common_local.properties"
+        "src/main/environment/common_local.properties" || return 1
 
-    local db_dir="$WORKSPACE/AMRIT-DB"
+    # Reuse an already-running instance (AMRIT-DB is meant to stay up).
+    if curl -sf -m 4 "$url" 2>/dev/null | grep -q '"version"'; then
+        log_info "db-migration" "AMRIT-DB already running on :8080 — reusing (migrations already applied)."
+        touch "$AMRIT_SETUP_DIR/.db_migrated" 2>/dev/null
+        return 0
+    fi
 
-    log_info "db-migration" "Running Flyway migrations (this may take a few minutes)..."
+    log_info "db-migration" "Launching AMRIT-DB service (Flyway migrations + schema-status API) in tmux window 'amrit-db'..."
+    run_in_tmux "$session" "amrit-db" \
+        "cd \"$WORKSPACE/AMRIT-DB\" && mvn -f pom.xml spring-boot:run -DENV_VAR=local"
 
-    local log_file
-    log_file=$(mktemp)
-
-    mvn -f "$db_dir/pom.xml" spring-boot:run -DENV_VAR=local 2>&1 | tee "$log_file" &
-    local mvn_pid=$!
-
-    local timeout=300
-    local elapsed=0
-    local interval=5
-    local observed_success=0
-    while kill -0 "$mvn_pid" 2>/dev/null; do
-        if grep -q "SUCCESS\|Flyway migration completed successfully" "$log_file" 2>/dev/null; then
-            observed_success=1
-            kill "$mvn_pid" 2>/dev/null
-            wait "$mvn_pid" 2>/dev/null
-            break
+    # Poll the status API until migrations complete. First build compiles the
+    # app, so allow a generous timeout.
+    local timeout=600 elapsed=0 interval=5
+    log_info "db-migration" "Waiting for migrations (polling $url; first build can take several minutes)..."
+    while [ "$elapsed" -lt "$timeout" ]; do
+        if curl -sf -m 4 "$url" 2>/dev/null | grep -q '"version"'; then
+            touch "$AMRIT_SETUP_DIR/.db_migrated" 2>/dev/null
+            log_info "db-migration" "Migrations applied; AMRIT-DB serving schema-status API on :8080 (left running)."
+            return 0
         fi
-        if grep -q "Error during migration:\|Failed to repair and migrate\|BUILD FAILURE\|APPLICATION FAILED TO START" "$log_file" 2>/dev/null; then
-            kill "$mvn_pid" 2>/dev/null
-            wait "$mvn_pid" 2>/dev/null
-            rm -f "$log_file"
-            log_warn "db-migration" "Migration failed — continuing setup."
-            return 1
-        fi
-        if [ "$elapsed" -ge "$timeout" ]; then
-            kill "$mvn_pid" 2>/dev/null
-            wait "$mvn_pid" 2>/dev/null
-            rm -f "$log_file"
-            log_warn "db-migration" "Migration timed out after ${timeout}s — continuing setup."
+        # Surface a hard failure early instead of waiting out the full timeout.
+        if tmux capture-pane -t "$session:amrit-db" -p -S -10 2>/dev/null | grep -qiE "BUILD FAILURE|APPLICATION FAILED TO START"; then
+            log_warn "db-migration" "AMRIT-DB failed to start — see the 'amrit-db' tmux window. Continuing setup."
             return 1
         fi
         sleep "$interval"
         elapsed=$((elapsed + interval))
     done
 
-    # Maven exited on its own (fast exit, build failure, etc.). Re-scan the log
-    # one last time before deciding — otherwise we'd sentinel on an uncertain exit.
-    if [ "$observed_success" -eq 0 ]; then
-        if grep -q "SUCCESS\|Flyway migration completed successfully" "$log_file" 2>/dev/null; then
-            observed_success=1
-        fi
-    fi
-
-    rm -f "$log_file"
-
-    if [ "$observed_success" -ne 1 ]; then
-        log_warn "db-migration" "Maven exited without observing a success marker — not writing sentinel. Re-run or check MySQL/AMRIT-DB."
-        return 1
-    fi
-
-    touch "$sentinel"
-    log_info "db-migration" "Migrations applied successfully."
+    log_warn "db-migration" "AMRIT-DB not ready within ${timeout}s — continuing (check the 'amrit-db' tmux window)."
+    return 1
 }
 
 # Loads master/dummy data by delegating to loaddummydata.sh.
@@ -377,6 +358,15 @@ setup_ui() {
         fi
         cp "$dir/$example_env" "$dir/$local_env"
         log_info "$name" "Created $local_env from example. Edit it with your local API endpoints before starting."
+    fi
+
+    # Ensure a `local` Angular configuration exists so `ng serve --configuration=local`
+    # uses environment.local.ts (localhost APIs) rather than the default development
+    # configuration, which file-replaces to environment.development.ts (remote dev server).
+    if [ -f "$dir/angular.json" ] && [ -f "$LIB_DIR/ensure_local_ng_config.py" ]; then
+        python3 "$LIB_DIR/ensure_local_ng_config.py" "$dir/angular.json" \
+            && log_info "$name" "Ensured 'local' Angular serve configuration (environment.local.ts)." \
+            || log_warn "$name" "Could not inject 'local' Angular configuration — check angular.json."
     fi
 }
 
