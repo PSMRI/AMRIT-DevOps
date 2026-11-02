@@ -1,291 +1,118 @@
 # AMRIT-DevOps
 
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-PSMRI%2FAMRIT--DevOps-blue.svg)](https://deepwiki.com/PSMRI/AMRIT-DevOps)
 
-[![DeepWiki](https://img.shields.io/badge/DeepWiki-PSMRI%2FAMRIT--DevOps-blue.svg?...)](https://deepwiki.com/PSMRI/AMRIT-DevOps)
+Setup and deployment tooling for **AMRIT** (Accessible Medical Records via Integrated Technology) — an open-source healthcare platform. For what AMRIT is, the service map, and system architecture, see the [official docs](https://piramal-swasthya.gitbook.io/amrit/) and in particular the [system architecture overview](https://piramal-swasthya.gitbook.io/amrit/architecture/system-architecture-overview).
 
-DevOps automation and infrastructure configuration repository for the AMRIT (Accessible Medical Records via Integrated Technology) platform. Contains Docker orchestration, database management tools, monitoring setup, and deployment automation scripts.
+## Pick your path
 
-## Overview
+| You want to … | Run this | Details |
+|---|---|---|
+| Run one or more products on a laptop | `bash amrit-local-setup/automation/start.sh` | [automation/](amrit-local-setup/automation/README.md) |
+| Debug an API or UI in your IDE with containerized infra | `cd amrit-local-setup/infra && docker compose up -d` | see **Manual (IDE) path** below |
+| Deploy the full platform (all APIs + UIs + NGINX) | `cd amrit-docker-setup && ./setup.sh && ./start-all.sh` | [amrit-docker-setup/](amrit-docker-setup/README.md) |
 
-This repository provides infrastructure-as-code and DevOps tooling for deploying and managing the AMRIT healthcare platform across multiple environments. It includes containerized deployment configurations, database management utilities, anonymization tools, and monitoring infrastructure.
-
-## Repository Structure
-
-### amrit-docker-setup
-Complete Docker-based deployment configuration for production and staging environments. Includes Docker Compose orchestration for all microservices, NGINX reverse proxy configuration, automated build scripts, and environment management.
-
-**Use case:** Full production deployment with containerized infrastructure and application services.
-
-### amrit-local-setup
-Lightweight Docker Compose configuration for local development environments. Provides only infrastructure services (MySQL, Redis, MongoDB) while APIs and UIs run directly on the host machine.
-
-**Use case:** Local development environment for debugging and feature development.
-
-### ELK
-Elastic Stack configuration for distributed tracing and centralized logging. Includes APM agent setup for WildFly application servers, Filebeat configuration for log aggregation, and Kibana dashboard setup.
-
-**Components:**
-- APM Server configuration for application performance monitoring
-- Filebeat setup for log collection and forwarding
-- WildFly integration configuration
-- API key management and security setup
+All three share the same infrastructure services on the same ports — **don't run two at once**.
 
 ## Prerequisites
 
-### Critical Requirements
-- **Docker Desktop** must be installed and RUNNING (the daemon must be active)
-- **MySQL Server 8.0** installed locally (not just the containerized version)
-  - **Important:** Use MySQL 8.0 specifically. Versions after 8.0 may cause compatibility issues
-  - MySQL CLI (`mysql.exe`) must be accessible from command line (added to system PATH)
-- Git 2.30+
+**Tools:**
 
-### Additional Software
-- Docker Engine 20.10+ and Docker Compose 2.0+
-- For local setup: Maven 3.6+, OpenJDK 17+
-- For UI development: Node.js 16+ and npm
+- Docker Engine 20.10+ with Compose v2
+- Java 17+, Maven 3.6+
+- Node 16+, Angular CLI
+- tmux, Git, wget, unzip
+- MySQL 8.0 CLI on PATH
+- **bash 4+** (macOS: `brew install bash`)
+- **gum** for the automation wizard (`brew install gum`, or see [gum install](https://github.com/charmbracelet/gum#installation))
 
-### System Requirements
-- Minimum 16GB RAM (32GB recommended for full deployment)
-- 50GB available disk space
-- Linux, macOS, or Windows with WSL2
+**Resources:**
 
-### First-Time Setup Note
-If running for the first time or after a long gap, initial setup will take considerable time (15-30 minutes) for:
-- Downloading Docker images
-- Building application containers
-- Database initialization
-- This is normal, be patient
+- 16 GB RAM recommended (24 GB+ for `--all` full-platform mode)
+- Free ports: `3306`, `6379`, `27017`, `9200`, `9300`, `5601`
+- Plus `80` for full stack, or `8081–8095` / `4201–4211` for automation
 
-## Quick Start
-
-### Mandatory Pre-Flight Checks
-
-**Before starting, verify:**
+**Preflight check:**
 ```bash
-# 1. Docker Desktop is running
-docker ps
-# Should return container list (even if empty), not an error
-
-# 2. MySQL 8.0 is installed and accessible
-mysql --version
-# Should show: mysql  Ver 8.0.x
-
-# 3. MySQL CLI is in system PATH
-where mysql  # Windows
-# or
-which mysql  # Linux/macOS
+docker ps && docker compose version && java -version && mvn -v && node -v && mysql --version && tmux -V && bash --version | head -1
 ```
 
-### Complete Setup Process
+## Quickstart (automation path)
 
-The AMRIT platform requires a specific setup sequence. Follow these steps in order:
-
-**Step 1: Start Infrastructure Services**
 ```bash
-cd amrit-docker-setup
-# or
-cd amrit-local-setup
-
-# Start MySQL, Redis, MongoDB
-docker-compose -f docker-compose.infra.yml up -d  # for docker-setup
-# or
-docker-compose up -d  # for local-setup
-
-# Wait 30-60 seconds for MySQL to initialize
-# First run takes longer - be patient
+git clone https://github.com/PSMRI/AMRIT-DevOps.git
+cd AMRIT-DevOps
+bash amrit-local-setup/automation/start.sh        # interactive wizard: pick ECD, HWC, MMU, TM, HL104, HL1097, or --all
+tmux attach -t amrit-ecd                          # session name matches the product you chose
 ```
 
-**Step 2: Setup Database Schemas**
+Open **http://localhost:4209** (ECD UI) once Maven finishes building. First run takes 20–30 min (image pulls, schema migrations, `npm install`, Maven build). Subsequent runs skip one-time steps via sentinels in `~/.amrit/`.
 
-Switch to the AMRIT-DB repository to run schema migrations:
+Flag-driven shortcuts:
 ```bash
-cd ../../AMRIT-DB
-cp src/main/environment/common_example.properties src/main/environment/common_local.properties
-# Edit common_local.properties with your MySQL credentials
-mvn clean install -DENV_VAR=local
-mvn spring-boot:run -DENV_VAR=local
-# Wait for "Migration successful" message, then stop (Ctrl+C)
+bash amrit-local-setup/automation/start.sh --product=ecd --skip-db --skip-data
+bash amrit-local-setup/automation/start.sh --products=ecd,hwc
+bash amrit-local-setup/automation/start.sh --all --force   # full platform on <24GB machines
+bash amrit-local-setup/automation/start.sh --help
 ```
 
-See [AMRIT-DB README](https://github.com/PSMRI/AMRIT-DB) for detailed instructions.
+To edit API keys / external service endpoints after setup: the `*_local.properties` and `environment.ts` files the wizard seeded, e.g. `ECD-API/src/main/environment/ecd_local.properties`. Reset one-time steps with `--reset-db`, `--reset-data`, or `--reset-all`.
 
-**Step 3: Return and Start Application Services**
+## Manual (IDE) path
+
+Bring up infra only, then run APIs / UIs on your host for IDE debugging:
+
 ```bash
-cd ../AMRIT-DevOps/amrit-docker-setup
-./start-all.sh
-# or for local setup, manually start individual API/UI services
+cd amrit-local-setup/infra && docker compose up -d
 ```
 
-### Quick Start Options
+Default credentials and ports:
 
-**Option 1: Full Docker Deployment**
+| Service | Credentials | Port |
+|---|---|---|
+| MySQL | `root` / `1234` | `3306` |
+| Redis | — | `6379` |
+| MongoDB | `root` / `1234` | `27017` |
+| Elasticsearch | `elastic` / `piramalES` | `9200` |
+
+Then follow the [AMRIT-DB](https://github.com/PSMRI/AMRIT-DB) README to run Flyway schema migrations, and clone the API/UI repos you need (e.g. `Common-API`, `ECD-UI`) from [PSMRI](https://github.com/PSMRI) — each has its own setup instructions.
+
+Optional master data:
 ```bash
-cd amrit-docker-setup
-cp .env.example .env
-# Configure environment variables in .env
-./setup.sh
-./start-all.sh
+./amrit-local-setup/infra/loaddummydata.sh     # or loaddummydata.bat on Windows
 ```
 
-**Option 2: Local Development Environment**
-```bash
-cd amrit-local-setup
-docker-compose up -d
-# Clone and run individual API/UI repositories on host
+## Database schema
+
+All paths use the same schemas (`db_iemr`, `db_identity`, `db_reporting`, `db_1097_identity`). Migrations are managed in **[PSMRI/AMRIT-DB](https://github.com/PSMRI/AMRIT-DB)** — follow its README. The automation path runs migrations automatically on first setup.
+
+## Layout
+
+```text
+AMRIT-DevOps/
+├── amrit-local-setup/
+│   ├── infra/           # Shared Docker Compose (MySQL, Redis, Mongo, Elasticsearch)
+│   └── automation/      # One-command per-product setup (ECD, HWC, …)
+├── amrit-docker-setup/  # Full containerized stack (NGINX + 14 APIs + 10 UIs)
+└── ELK/                 # Elastic Stack for centralized logging + APM
 ```
 
-**Important:** Both options require running [AMRIT-DB](https://github.com/PSMRI/AMRIT-DB) migrations after infrastructure is up but before starting application services.
+## Troubleshooting
 
-## Related Repositories
-
-This DevOps repository works in conjunction with:
-- [AMRIT-DB](https://github.com/PSMRI/AMRIT-DB) - Database schema management and migrations
-- [AmritMasterData](https://github.com/PSMRI/AmritMasterData) - Initial master data and reference datasets
-- API Repositories - Individual microservice implementations (Common-API, Admin-API, HWC-API, etc.)
-- UI Repositories - Angular frontend applications
-
-## Configuration Management
-
-Environment-specific configurations are managed through:
-- `.env` files for Docker deployments (see `.env.example` for reference)
-- `application.properties` for Spring Boot services
-- Docker Compose override files for environment-specific customization
-
-## Documentation
-
-Detailed setup and configuration instructions are available in each subdirectory:
-- [Docker Setup Guide](amrit-docker-setup/README.md)
-- [Local Development Setup](amrit-local-setup/README.md)
-- [ELK Monitoring Setup](ELK/SETUP.md)
-
-## Common Issues and Troubleshooting
-
-### Docker Compose Version Error
-
-**Error:** `version is obsolete` or similar Docker Compose version warning
-
-**Solution:** Remove or comment out the `version:` line in docker-compose files
-```yaml
-# version: "3.9"  # Comment this out or remove it
-services:
-  ...
-```
-
-Modern Docker Compose doesn't require the version field.
-
-### MySQL Command Not Recognized
-
-**Error:** `'mysql' is not recognized as an internal or external command`
-
-**Cause:** MySQL is not installed locally OR not added to system PATH
-
-**Solutions:**
-
-**Option 1: Install MySQL 8.0**
-- Download from [MySQL official site](https://dev.mysql.com/downloads/mysql/8.0.html)
-- During installation, ensure "Add to PATH" is selected
-- Restart terminal after installation
-
-**Option 2: Add MySQL to PATH manually**
-
-Windows:
-```powershell
-# Find mysql.exe location (usually C:\Program Files\MySQL\MySQL Server 8.0\bin)
-# Add to System Environment Variables > Path
-# Or temporarily:
-$env:PATH += ";C:\Program Files\MySQL\MySQL Server 8.0\bin"
-```
-
-Linux/macOS:
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export PATH=$PATH:/usr/local/mysql/bin
-source ~/.bashrc
-```
-
-**Option 3: Use Docker exec**
-If you only have containerized MySQL:
-```bash
-# Instead of mysql command, use:
-docker exec -i mysql-container mysql -uroot -p < script.sql
-```
-
-### Docker Desktop Not Running
-
-**Error:** `Cannot connect to the Docker daemon`
-
-**Solution:** Start Docker Desktop application before running any docker commands
-
-### First-Time Startup Very Slow
-
-**Symptom:** Containers taking 15-30 minutes to start
-
-**This is normal for:**
-- First-time setup
-- After long gap (images expired)
-- After Docker cache clear
-
-**What's happening:**
-- Downloading large images (MySQL, Redis, MongoDB, etc.)
-- Building application containers
-- Database initialization scripts running
-
-Just be patient and monitor logs: `docker-compose logs -f`
-
-### MySQL Version Compatibility Issues
-
-**Error:** Authentication plugin errors or connection failures
-
-**Solution:** Ensure you're using MySQL 8.0, not 8.1+ or 5.x
-```bash
-mysql --version
-# Should show 8.0.x
-```
-
-If you have a different version:
-- Uninstall current MySQL
-- Install MySQL 8.0 specifically
-- Or modify docker-compose.yml to use matching version
-
-### Port Already in Use
-
-**Error:** `Bind for 0.0.0.0:3306 failed: port is already allocated`
-
-**Solution:** Stop local MySQL service
-```bash
-# Windows
-net stop MySQL80
-
-# Linux
-sudo systemctl stop mysql
-
-# macOS
-brew services stop mysql
-```
-
-### Data Loading Script Fails
-
-**Error:** Script shows errors but no specific message
-
-**Checklist:**
-1. Is MySQL CLI in PATH? Test: `mysql --version`
-2. Are containers running? Test: `docker ps`
-3. Is MySQL container healthy? Test: `docker exec mysql-container mysql -uroot -p1234 -e "SELECT 1;"`
-4. Did you download and extract the master data?
-5. Did you update the DATA_PATH in the script?
-
-## Security Considerations
-
-- Never commit `.env` files or credentials to version control
-- Use secure password generation for all database credentials
-- Restrict network access to database ports in production
-- Implement proper API key rotation for ELK stack
-- Review anonymization configuration before running on production data
+| Symptom | Fix |
+|---|---|
+| `Cannot connect to the Docker daemon` | Start Docker Desktop; wait for the tray icon to go green. |
+| Port busy (3306 / 6379 / 27017 / 9200 / 80) | Stop host service (`brew services stop mysql`, `sudo systemctl stop mysql`, etc.) or find/kill with `lsof -i :<port>`. |
+| `'mysql' is not recognized` during data load | Install MySQL **8.0** CLI and add to PATH (not 8.1+, not 5.x). |
+| Elasticsearch password unknown | Local default is `piramalES` (`amrit-local-setup/infra/docker-compose.yml`). Server path uses `.env`. |
+| `docker-compose: command not found` | Use `docker compose` (v2, with a space). |
+| Memory-killed containers | Raise Docker Desktop memory limit; for the full stack, 16 GB+. |
 
 ## Support
 
-For platform documentation and technical support, refer to the [official AMRIT documentation](https://piramal-swasthya.gitbook.io/amrit/).
+- Platform docs: https://piramal-swasthya.gitbook.io/amrit/
+- Issues: open on the relevant repo under [PSMRI](https://github.com/PSMRI)
 
 ## License
 
-Refer to LICENSE file in this repository.
+See [LICENSE](LICENSE).
